@@ -1,0 +1,17 @@
+name = "cukup-worker"
+main = "src/index.ts"
+compatibility_date = "2026-11-04"
+workers_dev = true
+preview_urls = false
+
+# Gemini refuses requests from Hong Kong, where Cloudflare serves Malaysia by default.
+# Run the Worker near Google's Singapore region instead.
+[placement]
+region = "gcp:asia-southeast1"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cukup"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "migrations"
+

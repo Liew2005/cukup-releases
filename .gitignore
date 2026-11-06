@@ -1,0 +1,24 @@
+﻿# secrets
+.env
+.dev.vars
+local.properties
+key.properties
+*.jks
+
+# build output
+build/
+.dart_tool/
+node_modules/
+.wrangler/
+dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+
+.app-password.txt
+
+*.log
+
+dist/

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Money left this week, with Quick add and Scan</string>
+    <string name="shortcut_quick_add_short">Quick add</string>
+    <string name="shortcut_quick_add_long">Log a spend</string>
+</resources>
