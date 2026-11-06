@@ -17,6 +17,9 @@ Scan a receipt, split the bill with friends, and stay under a weekly cap, all wi
 
 </div>
 
+<p align="center"><img src="docs/screenshots/screens.png" alt="Cukup screens: this week, scan, check and save, quick add, screenshot import" width="100%"></p>
+<p align="center"><sub>Screens from the Cukup design prototype (sample data): this week, scan, check and save, quick add, screenshot import.</sub></p>
+
 ---
 
 ## Download
