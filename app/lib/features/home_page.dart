@@ -10,6 +10,7 @@ import '../data/recurring_poster.dart';
 import '../data/share_import.dart';
 import '../data/widget_sync.dart';
 import '../theme/theme.dart';
+import 'detected_card.dart';
 import 'friends_page.dart';
 import 'sweep_cards.dart';
 import 'week_bars.dart';
@@ -84,6 +85,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: LinearProgressIndicator(value: cap == 0 ? 0 : (spent / cap).clamp(0, 1).toDouble(), minHeight: 8, backgroundColor: Brand.line, color: over ? Brand.danger : Brand.forest),
             ),
             const SizedBox(height: 22),
+            const DetectedCard(),
             const SweepOfferCard(),
             WeekBars(daily: ref.watch(weekDailyProvider).asData?.value ?? const {}, capCents: cap, today: today),
             const SizedBox(height: 22),

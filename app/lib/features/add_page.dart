@@ -9,6 +9,7 @@ import '../core/time.dart';
 import '../data/db.dart';
 import '../data/providers.dart';
 import '../theme/theme.dart';
+import 'cap_switch.dart';
 import 'chips.dart';
 import 'dup_dialog.dart';
 
@@ -30,6 +31,7 @@ class _AddPageState extends ConsumerState<AddPage> {
   String _direction = 'spend';
   String _payment = 'ewallet';
   int? _categoryId;
+  bool? _capOverride; // null follows the category: Bills stays out of the cap
   String _date = todayKL();
   String? _error;
   bool _saving = false;
@@ -62,6 +64,7 @@ class _AddPageState extends ConsumerState<AddPage> {
       _direction = t.direction;
       _payment = t.paymentType;
       _categoryId = t.categoryId;
+      _capOverride = t.paymentType == 'spaylater' ? null : t.countsTowardCap;
       _date = t.spentAt;
     }
     if (mounted) setState(() => _loading = false);
@@ -132,7 +135,7 @@ class _AddPageState extends ConsumerState<AddPage> {
             receiptTotalCents: Value(old?.receiptTotalCents),
             taxCents: Value(old?.taxCents ?? 0),
             direction: Value(_direction),
-            countsTowardCap: Value(!income && payment != 'spaylater'),
+            countsTowardCap: Value(!income && payment != 'spaylater' && (_capOverride ?? capDefault(cats.where((c) => c.id == catId).firstOrNull?.name))),
             note: Value(note.isEmpty ? null : note),
             source: Value(old?.source ?? 'manual'),
             reference: Value(old?.reference),
@@ -195,6 +198,7 @@ class _AddPageState extends ConsumerState<AddPage> {
               PickChips<String>(options: _payments, selected: _payment, onSelected: (p) => setState(() => _payment = p)),
               if (_payment == 'spaylater')
                 const Padding(padding: EdgeInsets.only(top: 8), child: Text('Stays out of your weekly cap. You pay it back through the SPayLater schedule.', style: TextStyle(fontSize: 13, color: Brand.muted))),
+                if (_payment != 'spaylater') CapSwitch(value: _capOverride ?? capDefault(kindCats[selected]), onChanged: (v) => setState(() => _capOverride = v)),
             ] else
               const Padding(padding: EdgeInsets.only(top: 10), child: Text('Income never changes your weekly cap.', style: TextStyle(fontSize: 13, color: Brand.muted))),
             const SizedBox(height: 18),

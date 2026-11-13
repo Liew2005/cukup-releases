@@ -4,11 +4,15 @@
 
 **Receipt scan.** Photograph a receipt; text is read on the phone and structured by the server (or by offline rules when there is no connection). The review screen shows every line as quantity x unit price, lets you edit names, quantities and prices, and lets you edit or add tax and service charge. A red warning appears when items plus charges differ from the receipt total by more than 10 sen. A duplicate check asks before saving something that looks like an entry you already have (same reference, or same amount at the same shop within 36 hours).
 
+**Payment detection.** Turn on Settings > Detect payments and Cukup notices when TNG eWallet, ShopeePay, Grab or a bank app (UOB, HSBC, CIMB, GXBank, Ryt Bank, HLB) reports a payment, including bank text messages. It posts its own notification with the amount and two buttons, Save and Ignore, so a payment can be logged without opening the app. Anything not answered waits in a "Did you pay this?" card on Home with Save, Edit and dismiss. Money coming in, top-ups, codes, adverts and failed payments are ignored. A saved entry uses the shop named in the notification (or the app name), the category last used for that shop, and a fixed id so it can never be saved twice. Settings shows exactly what was read and what was skipped, with long numbers hidden, and can share that list to help tune the rules.
+
 **Screenshot import.** Share a Touch 'n Go or bank payment screenshot to Cukup from the Android share sheet. Amount, payee, reference and date are filled in on the Review screen. This works without the server.
 
 **Quick add.** Tap one of your most-used shops (or type one), key in the amount, pick a category and save. The category is learned from what you chose last time at that shop.
 
-**Manual entry.** Add or edit an entry by hand, with category, payment type, note and whether it counts toward the weekly cap.
+**Manual entry.** Add or edit an entry by hand, with category, payment type and note.
+
+**Counts toward weekly cap.** Add, Quick add and Check and save have a switch for whether an entry counts toward the weekly cap. It is off by default for the Bills category (water, electricity, phone) and on for everything else, and your own choice is kept when you edit. SPayLater purchases never count, because they are repaid through the bill schedule.
 
 ## Plan
 
@@ -43,7 +47,7 @@
 ## Phone integration
 
 - Home-screen widget showing the cap and this week's spend
-- Quick add launcher shortcut
+- Quick add from a Quick Settings tile (swipe down, one tap) or the launcher shortcut
 - Local notifications: bills due, daily nudge, weekly summary, cap alerts (scheduled on the device, so they work offline)
 - Fingerprint or PIN app lock
 - CSV export through the share sheet

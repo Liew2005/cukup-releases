@@ -79,6 +79,10 @@ storeFile=../cukup-release.jks
 
 Back the keystore up. If it is lost, installed copies can no longer be updated in place.
 
+### Turning on payment detection
+
+Open Settings > Detect payments and allow notification access. Because the app is installed outside the Play Store, Android may first show "Restricted setting": open App info for Cukup, tap the three dots, choose "Allow restricted settings", then try again.
+
 ## 3. Shipping an update
 
 ```powershell
@@ -86,6 +90,10 @@ Back the keystore up. If it is lost, installed copies can no longer be updated i
 ```
 
 The script bumps the build number, builds a signed arm64 APK, and creates a GitHub release containing the APK and `version.json`. Installed apps offer the update from Settings.
+
+## Publishing the source
+
+`scripts/export-public.ps1` writes a copy of the committed files to a sibling folder with the Worker URL, database id, pay link, payment QR and personal seed data replaced by placeholders, then scans the result and stops if anything personal is left.
 
 ## Tests
 

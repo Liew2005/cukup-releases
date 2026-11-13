@@ -11,7 +11,7 @@ Scan a receipt, split the bill with friends, and stay under a weekly cap, all wi
 ![TypeScript](https://img.shields.io/badge/TypeScript-Hono-3178C6?logo=typescript&logoColor=white)
 ![Platform](https://img.shields.io/badge/Android-sideloaded-3DDC84?logo=android&logoColor=white)
 ![Cost](https://img.shields.io/badge/running%20cost-RM%200-2ea44f)
-![Tests](https://img.shields.io/badge/tests-107%20Flutter%20%2B%20worker%20suites-brightgreen)
+![Tests](https://img.shields.io/badge/tests-116%20Flutter%20%2B%20worker%20suites-brightgreen)
 
 [Download](#download) · [Features](#features) · [Architecture](#architecture) · [Engineering highlights](#engineering-highlights) · [Getting started](#getting-started) · [Docs](#documentation)
 
@@ -44,12 +44,13 @@ It is a personal project I designed, built, and use every day. It covers the ful
 | **Split bills with friends** | Tap names per item, split evenly, or treat someone. Tax, service charge and rounding are shared in proportion to what each person had, accurate to the sen. Only your share counts toward your spending. |
 | **Friends ledger** | Per-friend balances, payments, and debts that stay bound to their receipt: edit the receipt and the debts update, delete it and they go away (with Undo). |
 | **Collect payment** | One-tap reminder message with your pay link and QR, sent through WhatsApp, with contacts picked from the phone. |
+| **Payment detection** | Reads payment notifications from e-wallet and bank apps (TNG eWallet, ShopeePay, Grab and six Malaysian banks) on the device and asks "Save?" from the notification itself, so logging a payment takes one tap without opening the app. |
 | **Screenshot import** | Share a Touch 'n Go or bank payment screenshot to Cukup. Amount, payee, reference and date are read on the phone. |
-| **Quick add** | Tap a usual shop, key in an amount, save. Categories are learned from past choices. |
+| **Quick add** | Tap a usual shop, key in an amount, save. Categories are learned from past choices. Spending in the Bills category stays out of the weekly cap by default, with a per-entry switch. |
 | **Bills and recurring** | SPayLater and other bills, plus rent, salary and subscriptions that post themselves each month, including months missed while the app was closed. |
 | **Savings sweep** | Money left under last week's cap can be moved toward a savings goal in one tap. |
 | **Insights** | Period totals, a category donut, an 8-week trend, and a weekly pace chart. |
-| **Native touches** | Home-screen widget, Quick add shortcut, local notifications (bills, daily, weekly, cap alerts), biometric app lock, CSV export. |
+| **Native touches** | Home-screen widget, Quick Settings tile and launcher shortcut for Quick add, local notifications (bills, daily, weekly, cap alerts), biometric app lock, CSV export. |
 | **OTA updates** | The app checks a public release feed and installs new APKs itself. |
 
 More detail: [docs/FEATURES.md](docs/FEATURES.md).
@@ -100,7 +101,8 @@ The phone is the source of truth for the person using it and works fully offline
 - **Don't trust the model.** Gemini output is passed through a reconciliation step (`worker/src/receipt.ts`) that enforces quantity x unit price, copies only printed tax lines, and flags totals that do not match, instead of silently "fixing" them.
 - **Offline first, sync that cannot double-post.** Entries have client-made UUIDs and soft deletes, so syncing twice never duplicates. Recurring entries use fixed ids per item and month.
 - **Derived, not stored.** The weekly carry-over is computed from entries every time, so it can never drift out of date.
-- **Pure, tested core.** Split maths, carry-over, duplicate detection, recurring schedules, the screenshot parser and the update parser are plain Dart with unit tests and no Flutter dependency.
+- **Pure, tested core.** Split maths, carry-over, duplicate detection, recurring schedules, the notification and screenshot parsers and the update parser are plain Dart with unit tests and no Flutter dependency.
+- **Private by design.** Payment detection uses an allowlist of apps, masks long numbers before logging, never logs personal messages, and keeps everything on the device.
 - **Security by default.** All routes except `/health` and `/auth` require a token. CSV export neutralises spreadsheet formula injection. See [docs/SECURITY.md](docs/SECURITY.md).
 - **Zero-cost operations.** The whole system runs on free tiers. Placement is pinned to Singapore to avoid Gemini region blocks.
 
@@ -115,12 +117,13 @@ cukup/
 │   │   ├── features/        Screens and widgets
 │   │   └── theme/
 │   ├── test/                Unit tests
-│   └── android/             Widget, shortcuts, installer provider
+│   └── android/             Widget, shortcuts, notification listener, Quick Settings tile, installer provider
 ├── worker/                  Cloudflare Worker API
 │   ├── src/                 Routes, auth, TOTP, receipt reconciliation
 │   ├── migrations/          D1 schema and seed
 │   └── scripts/             Password, 2FA and secret-rotation helpers, tests
 ├── scripts/release.ps1      Build, sign and publish an OTA release
+├── scripts/export-public.ps1  Builds this public copy with placeholders
 └── docs/                    Architecture, features, API, setup, security
 ```
 

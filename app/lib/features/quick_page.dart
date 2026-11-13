@@ -15,6 +15,7 @@ import '../data/db.dart';
 import '../data/providers.dart';
 import '../data/widget_sync.dart';
 import '../theme/theme.dart';
+import 'cap_switch.dart';
 import 'chips.dart';
 import 'dup_dialog.dart';
 
@@ -31,6 +32,7 @@ class _QuickPageState extends ConsumerState<QuickPage> {
   QuickMerchant? _picked;
   int? _catId; // chosen category; follows the shop's learned category until you tap one yourself
   bool _catManual = false;
+  bool? _capOverride; // null follows the category: Bills stays out of the cap
   Set<String> _friends = {}; // friends sharing this bill; empty means it is all yours
   bool _treat = false;
   bool _saving = false;
@@ -96,7 +98,7 @@ class _QuickPageState extends ConsumerState<QuickPage> {
         createdAt: now,
         updatedAt: now,
         direction: const Value('spend'),
-        countsTowardCap: Value(payment != 'spaylater'),
+        countsTowardCap: Value(payment != 'spaylater' && (_capOverride ?? capDefault(cats.where((c) => c.id == catId).firstOrNull?.name))),
         source: const Value('quick'),
       ),
       const [],
@@ -154,6 +156,7 @@ class _QuickPageState extends ConsumerState<QuickPage> {
               ),
             ),
             const SizedBox(height: 12),
+            CapSwitch(value: _capOverride ?? capDefault(cats.where((c) => c.id == (_catId ?? cats.where((c) => c.kind == 'spend').firstOrNull?.id)).firstOrNull?.name), onChanged: (v) => setState(() => _capOverride = v)),
             Align(alignment: Alignment.centerLeft, child: const FieldLabel('Split evenly with')),
             Align(alignment: Alignment.centerLeft, child: FriendChips(selected: _friends, onChanged: (s) => setState(() => _friends = s))),
             if (_friends.isNotEmpty)

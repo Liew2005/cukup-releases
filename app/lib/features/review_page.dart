@@ -16,6 +16,7 @@ import '../theme/theme.dart';
 import 'chips.dart';
 import 'dup_dialog.dart';
 import 'friend_picker.dart';
+import 'cap_switch.dart';
 
 const _payments = {'cash': 'Cash', 'debit': 'Debit', 'ewallet': 'E-wallet', 'credit_card': 'Credit card', 'spaylater': 'SPayLater'};
 
@@ -112,6 +113,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
   int get _tax => _service + _sst;
   int? _categoryId;
   String _payment = 'ewallet';
+  bool? _capOverride; // null follows the category: Bills stays out of the cap
   double? _confidence;
   String? _via;
   String? _reference;
@@ -139,6 +141,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
         _sstLabel = 'Tax and charges';
         _categoryId = t.categoryId;
         _payment = t.paymentType;
+        _capOverride = t.paymentType == 'spaylater' ? null : t.countsTowardCap;
         _confidence = t.confidence;
         _lines.addAll(items.map((i) => _Line(i.id, i.name, 1, i.priceCents, i.included ? 1 : 0)));
         _total = t.receiptTotalCents ?? t.amountCents;
@@ -411,7 +414,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
             receiptTotalCents: Value(_lines.isEmpty && _attendees.isEmpty ? null : _total),
             taxCents: Value(_tax),
             direction: const Value('spend'),
-            countsTowardCap: Value(_payment != 'spaylater'),
+            countsTowardCap: Value(_payment != 'spaylater' && (_capOverride ?? capDefault((ref.read(categoriesProvider).asData?.value ?? const <Cat>[]).where((c) => c.id == catId).firstOrNull?.name))),
             note: Value(_existing?.note),
             source: Value(_existing?.source ?? (_isImport ? 'import' : 'scan')),
             reference: Value(_existing?.reference ?? _reference),
@@ -600,6 +603,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
             const FieldLabel('Paid with'),
             PickChips<String>(options: _payments, selected: _payment, onSelected: (p) => setState(() => _payment = p)),
             if (_payment == 'spaylater') const Padding(padding: EdgeInsets.only(top: 8), child: Text('Stays out of your weekly cap. You pay it back through the SPayLater schedule.', style: TextStyle(fontSize: 13, color: Brand.muted))),
+            if (_payment != 'spaylater') CapSwitch(value: _capOverride ?? capDefault(spendCats[selectedCat]), onChanged: (v) => setState(() => _capOverride = v)),
             if (_error != null) Padding(padding: const EdgeInsets.only(top: 14), child: Text(_error!, style: const TextStyle(color: Brand.danger, fontWeight: FontWeight.w600))),
             const SizedBox(height: 22),
             FilledButton(onPressed: _saving ? null : () => _save(cats), child: Text('Save ${rm(share)}')),

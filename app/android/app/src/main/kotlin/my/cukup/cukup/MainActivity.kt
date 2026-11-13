@@ -21,12 +21,28 @@ class MainActivity : FlutterFragmentActivity() {
                 pending = null
             } else if (call.method == "install") {
                 result.success(installApk(call.arguments as String))
+            } else if (call.method == "detectAccess") {
+                result.success(androidx.core.app.NotificationManagerCompat.getEnabledListenerPackages(this).contains(packageName))
+            } else if (call.method == "detectSettings") {
+                result.success(open(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)))
+            } else if (call.method == "appInfo") {
+                result.success(open(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))))
+            } else if (call.method == "detectCancel") {
+                PaymentPrompt.cancel(this, call.arguments as String)
+                result.success(true)
             } else {
                 result.notImplemented()
             }
         }
         channel = ch
         pending = copyShared(intent)
+    }
+
+    private fun open(i: Intent): Boolean = try {
+        startActivity(i)
+        true
+    } catch (e: Exception) {
+        false
     }
 
     /** Opens the system installer for a downloaded update. Returns "ok", "needs_permission" or "error". */

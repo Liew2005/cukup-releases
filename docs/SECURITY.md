@@ -21,6 +21,7 @@ The helper scripts that set secrets read the password from a hidden prompt and p
 - Optional fingerprint or PIN lock covers the app on launch and after it has been in the background.
 - Receipt photos are read on the device. Only the extracted text is sent to the server.
 - From the phone contacts, the app receives only the single contact the user taps.
+- Payment detection is opt-in through Android's notification access setting. Only notifications from an allowlist of wallet and bank apps are examined; everything else is dropped without being read further. Personal text messages are never logged. Digit runs of six or more (four or more for skipped notifications) are masked before anything is written, so one-time codes, card and account numbers do not end up in the log. The log stays in app-private storage and leaves the phone only if the user shares it.
 
 ## Data handling
 

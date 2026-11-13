@@ -130,6 +130,12 @@ class SettingsPage extends ConsumerWidget {
               ListTile(title: const Text('Weekly cap'), subtitle: const Text('Tap to change', style: TextStyle(fontSize: 12, color: Brand.muted)), onTap: () => _editCap(context, ref, cap), trailing: Text(rm(cap), style: const TextStyle(fontWeight: FontWeight.w800))),
               const CarrySwitch(),
               ListTile(
+                title: const Text('Detect payments'),
+                subtitle: const Text('Notices TNG, ShopeePay, Grab and bank payments and asks to save them', style: TextStyle(fontSize: 12, color: Brand.muted)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/detected'),
+              ),
+              ListTile(
                 title: const Text('Repeating entries'),
                 subtitle: const Text('Rent, salary, subscriptions that log themselves', style: TextStyle(fontSize: 12, color: Brand.muted)),
                 trailing: const Icon(Icons.chevron_right),

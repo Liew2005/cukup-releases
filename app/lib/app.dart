@@ -8,6 +8,7 @@ import 'features/add_page.dart';
 import 'features/quick_page.dart';
 import 'features/friends_page.dart';
 import 'features/bills_page.dart';
+import 'features/detected_card.dart';
 import 'features/home_page.dart';
 import 'features/insights_page.dart';
 import 'features/login_page.dart';
@@ -44,6 +45,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/recurring', builder: (_, _) => const RecurringPage()),
       GoRoute(path: '/add', builder: (_, _) => const AddPage()),
       GoRoute(path: '/quick', builder: (_, _) => const QuickPage()),
+      GoRoute(path: '/detected', builder: (_, _) => const DetectedPage()),
       GoRoute(path: '/friends', builder: (_, _) => const FriendsPage()),
       GoRoute(path: '/friends/:id', builder: (_, state) => FriendDetailPage(id: state.pathParameters['id']!)),
       GoRoute(path: '/edit/:id', builder: (_, state) => AddPage(editId: state.pathParameters['id']!)),

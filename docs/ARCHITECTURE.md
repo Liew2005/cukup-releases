@@ -94,6 +94,25 @@ flowchart LR
 
 Malaysia has two common charges, a 6% SST and a 10% service charge, and shops differ in which they apply. The pipeline reads what is printed and never calculates tax itself. The review screen warns if items plus charges do not match the receipt total.
 
+## Payment detection
+
+```mermaid
+flowchart LR
+    N["Notification from a<br/>wallet or bank app"] --> L["PaymentListener<br/>(Android service)"]
+    L --> D{"PaymentDetect:<br/>money going out?"}
+    D -- no --> S["Logged as skipped<br/>(numbers masked)"]
+    D -- yes --> F[("detected.jsonl<br/>app-private file")]
+    F --> P["Prompt: Save / Ignore"]
+    P --> F
+    F --> A["Flutter: Home card,<br/>saves entries"]
+```
+
+The listener is a native `NotificationListenerService`, so it works while the Flutter app is closed. It only looks at an allowlist of apps, matched by package name or app label. A small pure function decides whether the text is money going out (an RM amount plus payment wording, and none of the words that mean incoming money, codes, adverts or failures).
+
+The service and the app communicate through one append-only file in the app's private storage: the service appends detections and the Save / Ignore taps, and Flutter only reads it. Flutter keeps its own list of handled ids, so there is a single writer per store and no locking. When the app next opens or resumes it turns every "Save" into an entry with a fixed id (`det-<id>`), which makes saving idempotent.
+
+The decision rules exist twice, in Kotlin (used while the app is closed) and in Dart (`core/pay_notif.dart`, unit tested, also extracts the shop name). They are kept textually identical.
+
 ## Split maths
 
 A bill becomes a list of slots, one per unit ordered. Each slot records who had it; several people on one slot share it evenly, and a slot can be marked as a treat.
