@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app.dart';
+import 'detected.dart';
 import 'providers.dart';
 
 const _channel = MethodChannel('cukup/share');
@@ -31,9 +32,17 @@ final shareImportProvider = Provider<void>((ref) {
     }
   }
 
+  // The banner for a detected payment was tapped: open its Confirm sheet.
+  Future<void> confirm() async {
+    final id = await takeConfirmId();
+    if (id != null) ref.read(routerProvider).push('/confirm/$id');
+  }
+
   _channel.setMethodCallHandler((call) async {
     if (call.method == 'shared') await take();
+    if (call.method == 'confirm') await confirm();
   });
   take(); // a screenshot that opened the app from cold
+  confirm(); // a banner tap that opened the app from cold
   ref.onDispose(() => _channel.setMethodCallHandler(null));
 });

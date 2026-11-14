@@ -48,8 +48,23 @@ class $CategoriesTable extends Categories
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _capDefaultMeta = const VerificationMeta(
+    'capDefault',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, kind, sortOrder];
+  late final GeneratedColumn<bool> capDefault = GeneratedColumn<bool>(
+    'cap_default',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("cap_default" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, kind, sortOrder, capDefault];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -87,6 +102,12 @@ class $CategoriesTable extends Categories
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('cap_default')) {
+      context.handle(
+        _capDefaultMeta,
+        capDefault.isAcceptableOrUnknown(data['cap_default']!, _capDefaultMeta),
+      );
+    }
     return context;
   }
 
@@ -112,6 +133,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      capDefault: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}cap_default'],
+      )!,
     );
   }
 
@@ -126,11 +151,13 @@ class Cat extends DataClass implements Insertable<Cat> {
   final String name;
   final String kind;
   final int sortOrder;
+  final bool capDefault;
   const Cat({
     required this.id,
     required this.name,
     required this.kind,
     required this.sortOrder,
+    required this.capDefault,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -139,6 +166,7 @@ class Cat extends DataClass implements Insertable<Cat> {
     map['name'] = Variable<String>(name);
     map['kind'] = Variable<String>(kind);
     map['sort_order'] = Variable<int>(sortOrder);
+    map['cap_default'] = Variable<bool>(capDefault);
     return map;
   }
 
@@ -148,6 +176,7 @@ class Cat extends DataClass implements Insertable<Cat> {
       name: Value(name),
       kind: Value(kind),
       sortOrder: Value(sortOrder),
+      capDefault: Value(capDefault),
     );
   }
 
@@ -161,6 +190,7 @@ class Cat extends DataClass implements Insertable<Cat> {
       name: serializer.fromJson<String>(json['name']),
       kind: serializer.fromJson<String>(json['kind']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      capDefault: serializer.fromJson<bool>(json['capDefault']),
     );
   }
   @override
@@ -171,14 +201,22 @@ class Cat extends DataClass implements Insertable<Cat> {
       'name': serializer.toJson<String>(name),
       'kind': serializer.toJson<String>(kind),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'capDefault': serializer.toJson<bool>(capDefault),
     };
   }
 
-  Cat copyWith({int? id, String? name, String? kind, int? sortOrder}) => Cat(
+  Cat copyWith({
+    int? id,
+    String? name,
+    String? kind,
+    int? sortOrder,
+    bool? capDefault,
+  }) => Cat(
     id: id ?? this.id,
     name: name ?? this.name,
     kind: kind ?? this.kind,
     sortOrder: sortOrder ?? this.sortOrder,
+    capDefault: capDefault ?? this.capDefault,
   );
   Cat copyWithCompanion(CategoriesCompanion data) {
     return Cat(
@@ -186,6 +224,9 @@ class Cat extends DataClass implements Insertable<Cat> {
       name: data.name.present ? data.name.value : this.name,
       kind: data.kind.present ? data.kind.value : this.kind,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      capDefault: data.capDefault.present
+          ? data.capDefault.value
+          : this.capDefault,
     );
   }
 
@@ -195,13 +236,14 @@ class Cat extends DataClass implements Insertable<Cat> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('kind: $kind, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('capDefault: $capDefault')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, kind, sortOrder);
+  int get hashCode => Object.hash(id, name, kind, sortOrder, capDefault);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -209,7 +251,8 @@ class Cat extends DataClass implements Insertable<Cat> {
           other.id == this.id &&
           other.name == this.name &&
           other.kind == this.kind &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.capDefault == this.capDefault);
 }
 
 class CategoriesCompanion extends UpdateCompanion<Cat> {
@@ -217,17 +260,20 @@ class CategoriesCompanion extends UpdateCompanion<Cat> {
   final Value<String> name;
   final Value<String> kind;
   final Value<int> sortOrder;
+  final Value<bool> capDefault;
   const CategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.kind = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.capDefault = const Value.absent(),
   });
   CategoriesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     required String kind,
     this.sortOrder = const Value.absent(),
+    this.capDefault = const Value.absent(),
   }) : name = Value(name),
        kind = Value(kind);
   static Insertable<Cat> custom({
@@ -235,12 +281,14 @@ class CategoriesCompanion extends UpdateCompanion<Cat> {
     Expression<String>? name,
     Expression<String>? kind,
     Expression<int>? sortOrder,
+    Expression<bool>? capDefault,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (kind != null) 'kind': kind,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (capDefault != null) 'cap_default': capDefault,
     });
   }
 
@@ -249,12 +297,14 @@ class CategoriesCompanion extends UpdateCompanion<Cat> {
     Value<String>? name,
     Value<String>? kind,
     Value<int>? sortOrder,
+    Value<bool>? capDefault,
   }) {
     return CategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       kind: kind ?? this.kind,
       sortOrder: sortOrder ?? this.sortOrder,
+      capDefault: capDefault ?? this.capDefault,
     );
   }
 
@@ -273,6 +323,9 @@ class CategoriesCompanion extends UpdateCompanion<Cat> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (capDefault.present) {
+      map['cap_default'] = Variable<bool>(capDefault.value);
+    }
     return map;
   }
 
@@ -282,7 +335,8 @@ class CategoriesCompanion extends UpdateCompanion<Cat> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('kind: $kind, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('capDefault: $capDefault')
           ..write(')'))
         .toString();
   }
@@ -3120,12 +3174,14 @@ typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   required String name,
   required String kind,
   Value<int> sortOrder,
+  Value<bool> capDefault,
 });
 typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
   Value<int> id,
   Value<String> name,
   Value<String> kind,
   Value<int> sortOrder,
+  Value<bool> capDefault,
 });
 
 class $$CategoriesTableFilterComposer
@@ -3154,6 +3210,11 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get capDefault => $composableBuilder(
+    column: $table.capDefault,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3186,6 +3247,11 @@ class $$CategoriesTableOrderingComposer
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get capDefault => $composableBuilder(
+    column: $table.capDefault,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CategoriesTableAnnotationComposer
@@ -3208,6 +3274,11 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get capDefault => $composableBuilder(
+    column: $table.capDefault,
+    builder: (column) => column,
+  );
 }
 
 class $$CategoriesTableTableManager
@@ -3242,11 +3313,13 @@ class $$CategoriesTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> kind = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> capDefault = const Value.absent(),
               }) => CategoriesCompanion(
                 id: id,
                 name: name,
                 kind: kind,
                 sortOrder: sortOrder,
+                capDefault: capDefault,
               ),
           createCompanionCallback:
               ({
@@ -3254,11 +3327,13 @@ class $$CategoriesTableTableManager
                 required String name,
                 required String kind,
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> capDefault = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 id: id,
                 name: name,
                 kind: kind,
                 sortOrder: sortOrder,
+                capDefault: capDefault,
               ),
           withReferenceMapper: (p0) => p0
               .map(

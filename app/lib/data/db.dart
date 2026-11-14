@@ -1,4 +1,4 @@
-﻿import 'package:drift/drift.dart';
+import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 import '../core/time.dart';
@@ -11,6 +11,7 @@ class Categories extends Table {
   TextColumn get name => text()();
   TextColumn get kind => text()(); // spend | income
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  BoolColumn get capDefault => boolean().withDefault(const Constant(true))(); // counts toward the weekly cap unless the entry says otherwise
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -99,7 +100,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -107,6 +108,10 @@ class AppDatabase extends _$AppDatabase {
         onUpgrade: (m, from, to) async {
           if (from < 2) await m.createTable(bills);
           if (from < 3) await m.createTable(recurringItems);
+          if (from < 4) {
+            await m.addColumn(categories, categories.capDefault);
+            await customStatement("UPDATE categories SET cap_default = 0 WHERE name = 'Bills'");
+          }
         },
       );
 
@@ -257,6 +262,8 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<String?> getKv(String key) async => (await (select(kv)..where((k) => k.key.equals(key))).getSingleOrNull())?.value;
+  /// Every stored value whose key starts with [prefix].
+  Future<Map<String, String>> kvPrefix(String prefix) async => {for (final r in await (select(kv)..where((k) => k.key.like('$prefix%'))).get()) r.key: r.value};
   Future<void> setKv(String key, String value) => into(kv).insertOnConflictUpdate(KvCompanion.insert(key: key, value: value));
 
   // ---- local writes (each one also queues a push) ----

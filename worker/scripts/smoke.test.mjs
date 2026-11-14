@@ -153,3 +153,42 @@ test('csv export is formula-safe', async () => {
   assert.ok(!/,=HYPERLINK/.test(r.text));
   await api('DELETE', '/transactions/' + id);
 });
+
+test('custom categories: add, rename, keep out of the cap, delete moves entries to Other', async () => {
+  const name = 'Zz ' + uid().slice(1, 9);
+  const made = await api('POST', '/categories', { name, kind: 'spend', cap_default: false });
+  assert.equal(made.status, 201);
+  const cat = made.json.category;
+  assert.equal(cat.name, name);
+  assert.equal(cat.cap_default, 0);
+
+  assert.equal((await api('POST', '/categories', { name: name.toUpperCase(), kind: 'spend' })).status, 400); // same name, different case
+  assert.equal((await api('POST', '/categories', { name: '', kind: 'spend' })).status, 400);
+  assert.equal((await api('POST', '/categories', { name: 'Nope', kind: 'saving' })).status, 400);
+
+  const renamed = await api('PUT', '/categories/' + cat.id, { name: name + ' 2', cap_default: true, sort_order: 55 });
+  assert.equal(renamed.status, 200);
+  assert.equal(renamed.json.category.name, name + ' 2');
+  assert.equal(renamed.json.category.cap_default, 1);
+  assert.equal(renamed.json.category.sort_order, 55);
+
+  const list = (await api('GET', '/categories')).json.categories;
+  assert.ok(list.some((c) => c.id === cat.id && c.cap_default === 1));
+  assert.equal(list.find((c) => c.name === 'Bills').cap_default, 0);
+  const other = list.find((c) => c.name === 'Other');
+
+  // the fallbacks are fixed
+  assert.equal((await api('PUT', '/categories/' + other.id, { name: 'Misc' })).status, 400);
+  assert.equal((await api('DELETE', '/categories/' + other.id)).status, 400);
+  assert.equal((await api('PUT', '/categories/' + other.id, { cap_default: true })).status, 200);
+
+  const id = uid();
+  await api('PUT', '/transactions/' + id, { spent_at: today, merchant: 'Cat test', amount_cents: 100, category_id: cat.id, payment_type: 'cash', source: 'manual' });
+  const gone = await api('DELETE', '/categories/' + cat.id);
+  assert.equal(gone.status, 200);
+  assert.equal(gone.json.moved_to, other.id);
+  assert.equal(gone.json.moved_entries, 1);
+  assert.equal((await api('GET', '/transactions/' + id)).json.transaction.category_id, other.id);
+  assert.equal((await api('DELETE', '/categories/' + cat.id)).status, 404);
+  await api('DELETE', '/transactions/' + id);
+});

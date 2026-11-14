@@ -102,16 +102,20 @@ flowchart LR
     L --> D{"PaymentDetect:<br/>money going out?"}
     D -- no --> S["Logged as skipped<br/>(numbers masked)"]
     D -- yes --> F[("detected.jsonl<br/>app-private file")]
-    F --> P["Prompt: Save / Ignore"]
+    F --> P["Heads-up banner:<br/>Save / Delete"]
     P --> F
     F --> A["Flutter: Home card,<br/>saves entries"]
 ```
 
-The listener is a native `NotificationListenerService`, so it works while the Flutter app is closed. It only looks at an allowlist of apps, matched by package name or app label. A small pure function decides whether the text is money going out (an RM amount plus payment wording, and none of the words that mean incoming money, codes, adverts or failures).
+The listener is a native `NotificationListenerService`, so it works while the Flutter app is closed. It only looks at an allowlist of apps, matched by package name or app label. `PaymentDetect.kt` holds every rule as pure Kotlin with no Android classes: is the text money going out, how much, which shop, which card. It is the only copy of those rules and is covered by JUnit tests that run on the computer (`gradlew :app:testDebugUnitTest`), including real notification wording such as a Google Wallet tap.
 
-The service and the app communicate through one append-only file in the app's private storage: the service appends detections and the Save / Ignore taps, and Flutter only reads it. Flutter keeps its own list of handled ids, so there is a single writer per store and no locking. When the app next opens or resumes it turns every "Save" into an entry with a fixed id (`det-<id>`), which makes saving idempotent.
+The service and the app communicate through files in the app's private storage, each with exactly one writer, so no locking is needed. The service appends to `detected.jsonl`: detections, merges (a second app reporting the same amount within 30 minutes) and the Save / Delete taps. Flutter only reads it and keeps its own list of handled ids. In the other direction Flutter writes `detect_ctx.json` (category names, learned shop rules, remembered card types) so the banner can show a category and payment type while the app is closed. When the app next opens or resumes it turns every "Save" into an entry with a fixed id (`det-<id>`), which makes saving idempotent. Nothing is ever saved without an explicit Save.
 
-The decision rules exist twice, in Kotlin (used while the app is closed) and in Dart (`core/pay_notif.dart`, unit tested, also extracts the shop name). They are kept textually identical.
+Tapping the banner starts the app with the detection id, which opens a Confirm sheet (a transparent route over whatever screen was showing) for editing before saving.
+
+## Categories
+
+Categories are owned by the server and replaced wholesale on each pull, so the phone never has to merge them. Each carries `cap_default`, which sets the starting position of the "counts toward weekly cap" switch for new entries. Deleting a category reassigns its entries, repeating items and shop rules to a fixed fallback ("Other" or "Other income") in one batch and bumps `updated_at`, so the change reaches every device through the normal sync.
 
 ## Split maths
 

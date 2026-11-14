@@ -1,9 +1,10 @@
-﻿import { Hono } from 'hono';
+import { Hono } from 'hono';
 import { requireAuth } from './auth';
 import { auth } from './routes/auth';
 import { parse } from './routes/parse';
 import { exportRoute } from './routes/export';
-import { bills, categories, recurring, rules, settings } from './routes/reference';
+import { categories } from './routes/categories';
+import { bills, recurring, rules, settings } from './routes/reference';
 import { summary } from './routes/summary';
 import { ledger } from './routes/ledger';
 import { transactions } from './routes/transactions';

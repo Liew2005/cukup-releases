@@ -10,7 +10,7 @@ import '../data/recurring_poster.dart';
 import '../data/share_import.dart';
 import '../data/widget_sync.dart';
 import '../theme/theme.dart';
-import 'detected_card.dart';
+import 'confirm_sheet.dart';
 import 'friends_page.dart';
 import 'sweep_cards.dart';
 import 'week_bars.dart';
@@ -28,6 +28,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.initState();
     Future.microtask(() async {
       ref.read(notificationsProvider); // starts reminders
+      ref.read(capRuleProvider); // which categories stay out of the weekly cap
       ref.read(widgetSyncProvider); // keeps the home-screen widget current
       ref.read(shareImportProvider); // screenshots shared from TnG or the bank
       await postDueRecurring(ref.read(dbProvider)).catchError((_) => 0); // works offline; sync pushes the result

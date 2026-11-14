@@ -104,7 +104,7 @@ class TxnDetailPage extends ConsumerWidget {
             row(income ? 'Type' : 'Category', income ? 'Income · $catName' : catName),
             if (!income) row('Paid with', _paymentLabels[t.paymentType] ?? t.paymentType),
             row('Counts toward cap', capNote),
-            row('Added', _sourceLabels[t.source] ?? t.source),
+            row('Added', t.id.startsWith('det-') ? 'Detected payment' : _sourceLabels[t.source] ?? t.source),
             if (t.note != null) row('Note', t.note!),
             if (t.reference != null) row('Reference', t.reference!),
             if (items.isNotEmpty) ...[

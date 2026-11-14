@@ -4,7 +4,13 @@
 
 **Receipt scan.** Photograph a receipt; text is read on the phone and structured by the server (or by offline rules when there is no connection). The review screen shows every line as quantity x unit price, lets you edit names, quantities and prices, and lets you edit or add tax and service charge. A red warning appears when items plus charges differ from the receipt total by more than 10 sen. A duplicate check asks before saving something that looks like an entry you already have (same reference, or same amount at the same shop within 36 hours).
 
-**Payment detection.** Turn on Settings > Detect payments and Cukup notices when TNG eWallet, ShopeePay, Grab or a bank app (UOB, HSBC, CIMB, GXBank, Ryt Bank, HLB) reports a payment, including bank text messages. It posts its own notification with the amount and two buttons, Save and Ignore, so a payment can be logged without opening the app. Anything not answered waits in a "Did you pay this?" card on Home with Save, Edit and dismiss. Money coming in, top-ups, codes, adverts and failed payments are ignored. A saved entry uses the shop named in the notification (or the app name), the category last used for that shop, and a fixed id so it can never be saved twice. Settings shows exactly what was read and what was skipped, with long numbers hidden, and can share that list to help tune the rules.
+**Payment detection.** Turn on Settings > Detect payments and Cukup notices when TNG eWallet, ShopeePay, Grab, Google Wallet or a bank app (AmBank, UOB, HSBC, CIMB, GXBank, Ryt Bank, HLB) reports a payment, including bank text messages. A banner drops from the top of the screen with the amount and shop, the category Cukup would use, how it was paid, and two buttons: Save and Delete. **Nothing is recorded until you tap Save.** Tapping the banner itself opens a Confirm sheet where the amount, shop, category, payment type and the weekly-cap switch can be changed first. Anything not answered waits in a "Did you pay this?" card on Home.
+
+- **Google Wallet taps** carry the shop name and the card. The first time a card appears the banner asks Credit or Debit and remembers the answer for that card.
+- **One purchase, one prompt.** A card payment is often reported by both the bank and Google Wallet. A second app reporting the same amount within 30 minutes is merged into the first, and fills in the shop name if the first one had none.
+- **Ignored:** money coming in, top-ups, codes, adverts and failed payments.
+- **No doubles:** a saved entry uses a fixed id, so the same detection can never be saved twice.
+- **Transparent:** Settings shows exactly what was read, merged and skipped, with long numbers hidden, and can share that list to help tune the rules.
 
 **Screenshot import.** Share a Touch 'n Go or bank payment screenshot to Cukup from the Android share sheet. Amount, payee, reference and date are filled in on the Review screen. This works without the server.
 
@@ -12,7 +18,9 @@
 
 **Manual entry.** Add or edit an entry by hand, with category, payment type and note.
 
-**Counts toward weekly cap.** Add, Quick add and Check and save have a switch for whether an entry counts toward the weekly cap. It is off by default for the Bills category (water, electricity, phone) and on for everything else, and your own choice is kept when you edit. SPayLater purchases never count, because they are repaid through the bill schedule.
+**Counts toward weekly cap.** Add, Quick add, Check and save and the Confirm sheet have a switch for whether an entry counts toward the weekly cap. Its starting position comes from the category (off for Bills by default), and your own choice is kept when you edit. SPayLater purchases never count, because they are repaid through the bill schedule.
+
+**Custom categories.** Settings > Categories lists spending and income categories. Add your own, rename, drag to reorder, and set whether each one counts toward the weekly cap. Deleting a category moves its entries, repeating items and shop rules to Other (or Other income), so nothing is lost. Categories live on the server, so changes need a connection.
 
 ## Plan
 

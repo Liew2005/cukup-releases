@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
@@ -10,6 +10,7 @@ import 'notifications.dart';
 import 'recurring_poster.dart';
 import 'scan_service.dart';
 import 'db.dart';
+import '../core/cap_rule.dart';
 import '../core/time.dart';
 
 final dbProvider = Provider<AppDatabase>((ref) {
@@ -178,11 +179,7 @@ class SyncController extends Notifier<SyncState> {
     final db = ref.read(dbProvider);
     final api = ref.read(apiProvider);
 
-    final cats = await api.categories();
-    await db.replaceCategories([
-      for (final c in cats)
-        CategoriesCompanion.insert(id: Value((c as Map)['id'] as int), name: c['name'] as String, kind: c['kind'] as String, sortOrder: Value((c['sort_order'] ?? 0) as int)),
-    ]);
+    await refreshCategories(api, db);
     final settings = await api.settings();
     for (final e in settings.entries) {
       await db.setKv('setting.${e.key}', '${e.value}');
@@ -285,6 +282,30 @@ final recentTxnsProvider = StreamProvider<List<Txn>>((ref) => ref.watch(dbProvid
 final txnProvider = StreamProvider.family<Txn?, String>((ref, id) => ref.watch(dbProvider).watchTxn(id));
 final itemsProvider = StreamProvider.family<List<TxnItem>, String>((ref, id) => ref.watch(dbProvider).watchItems(id));
 final categoriesProvider = StreamProvider<List<Cat>>((ref) => ref.watch(dbProvider).watchCategories());
+
+/// Fetches the category list from the server and replaces the local copy.
+/// A server from before custom categories sends no cap_default, so Bills is assumed to be the only one outside the cap.
+Future<void> refreshCategories(ApiClient api, AppDatabase db) async {
+  final cats = await api.categories();
+  await db.replaceCategories([
+    for (final c in cats)
+      CategoriesCompanion.insert(
+        id: Value((c as Map)['id'] as int),
+        name: c['name'] as String,
+        kind: c['kind'] as String,
+        sortOrder: Value((c['sort_order'] ?? 0) as int),
+        capDefault: Value(c['cap_default'] == null ? c['name'] != 'Bills' : (c['cap_default'] == 1 || c['cap_default'] == true)),
+      ),
+  ]);
+}
+
+/// Keeps the cap rule (core/cap_rule.dart) in step with the categories: which ones stay out of the weekly cap.
+final capRuleProvider = Provider<void>((ref) {
+  ref.listen(categoriesProvider, (_, next) {
+    final cats = next.asData?.value;
+    if (cats != null && cats.isNotEmpty) setCapOff(cats.where((c) => c.kind == 'spend' && !c.capDefault).map((c) => c.name));
+  }, fireImmediately: true);
+});
 final capCentsProvider = StreamProvider<int>((ref) => ref.watch(dbProvider).watchCapCents());
 final pendingCountProvider = StreamProvider<int>((ref) => ref.watch(dbProvider).watchPendingCount());
 /// Starts reminders. Read it once from Home; it then rebuilds the schedule whenever bills, spending or the cap change.

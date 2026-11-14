@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/theme.dart';
 
-/// Spending in the Bills category (water, electricity, phone) is recorded but stays out of the weekly cap,
-/// unless the person turns the switch on. Everything else counts by default.
-bool capDefault(String? categoryName) => (categoryName ?? '').trim().toLowerCase() != 'bills';
+export '../core/cap_rule.dart' show capDefault;
 
 /// "Counts toward weekly cap" switch shown under Paid with.
 class CapSwitch extends StatelessWidget {

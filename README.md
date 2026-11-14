@@ -11,7 +11,7 @@ Scan a receipt, split the bill with friends, and stay under a weekly cap, all wi
 ![TypeScript](https://img.shields.io/badge/TypeScript-Hono-3178C6?logo=typescript&logoColor=white)
 ![Platform](https://img.shields.io/badge/Android-sideloaded-3DDC84?logo=android&logoColor=white)
 ![Cost](https://img.shields.io/badge/running%20cost-RM%200-2ea44f)
-![Tests](https://img.shields.io/badge/tests-116%20Flutter%20%2B%20worker%20suites-brightgreen)
+![Tests](https://img.shields.io/badge/tests-115%20Flutter%20%2B%209%20Kotlin%20%2B%20worker%20suites-brightgreen)
 
 [Download](#download) · [Features](#features) · [Architecture](#architecture) · [Engineering highlights](#engineering-highlights) · [Getting started](#getting-started) · [Docs](#documentation)
 
@@ -44,9 +44,10 @@ It is a personal project I designed, built, and use every day. It covers the ful
 | **Split bills with friends** | Tap names per item, split evenly, or treat someone. Tax, service charge and rounding are shared in proportion to what each person had, accurate to the sen. Only your share counts toward your spending. |
 | **Friends ledger** | Per-friend balances, payments, and debts that stay bound to their receipt: edit the receipt and the debts update, delete it and they go away (with Undo). |
 | **Collect payment** | One-tap reminder message with your pay link and QR, sent through WhatsApp, with contacts picked from the phone. |
-| **Payment detection** | Reads payment notifications from e-wallet and bank apps (TNG eWallet, ShopeePay, Grab and six Malaysian banks) on the device and asks "Save?" from the notification itself, so logging a payment takes one tap without opening the app. |
+| **Payment detection** | Reads payment notifications from e-wallets, Google Wallet taps and bank apps on the device. A banner drops from the top with the amount, shop, guessed category and payment type, and Save / Delete. Nothing is recorded until Save, and the same purchase reported by two apps is merged into one. |
 | **Screenshot import** | Share a Touch 'n Go or bank payment screenshot to Cukup. Amount, payee, reference and date are read on the phone. |
-| **Quick add** | Tap a usual shop, key in an amount, save. Categories are learned from past choices. Spending in the Bills category stays out of the weekly cap by default, with a per-entry switch. |
+| **Quick add** | Tap a usual shop, key in an amount, save. Categories are learned from past choices. |
+| **Custom categories** | Add, rename, reorder and delete categories. Each one has a "counts toward weekly cap" setting, so bills and utilities can be recorded without eating the week. |
 | **Bills and recurring** | SPayLater and other bills, plus rent, salary and subscriptions that post themselves each month, including months missed while the app was closed. |
 | **Savings sweep** | Money left under last week's cap can be moved toward a savings goal in one tap. |
 | **Insights** | Period totals, a category donut, an 8-week trend, and a weekly pace chart. |

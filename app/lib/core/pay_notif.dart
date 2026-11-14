@@ -1,37 +1,43 @@
-// Payments noticed from wallet and bank notifications. Pure Dart, no Flutter.
+// Payments noticed from wallet, bank and Google Wallet notifications. Pure Dart, no Flutter.
 //
-// The Android listener (PaymentDetect.kt) decides what is a payment while the app is closed.
-// The same rules are kept here so they can be unit tested: change both together.
+// The Android listener decides what is a payment and reads the amount, shop and card
+// (PaymentDetect.kt, tested there). This file only reads the list it leaves behind.
 import 'dart:convert';
 
-/// A payment the listener noticed and has not been dealt with yet.
+/// A payment the listener noticed.
 class Detected {
-  const Detected({required this.id, required this.at, required this.app, required this.kind, required this.title, required this.text, required this.cents});
+  Detected({required this.id, required this.at, required this.app, required this.kind, required this.title, required this.text, required this.cents, this.shop, this.card});
   final String id;
   final int at; // epoch milliseconds
-  final String app; // "TNG eWallet", "CIMB", ...
-  final String kind; // wallet | bank | sms
+  final String app; // "TNG eWallet", "CIMB", "Google Wallet", ...
+  final String kind; // wallet | bank | sms | card
   final String title;
   final String text;
   final int cents;
+  String? shop; // read from the wording; a second app reporting the same payment can fill it in
+  String? card; // "AmBank BonusLink Visa", for Google Wallet taps
+  final List<String> alsoSeenBy = []; // other apps that reported this same payment
+  String? chosenPay; // credit_card | debit picked on the banner the first time a card was seen
+  String via = 'app'; // where Save was tapped: banner | app
 
-  /// Shop name read from the wording, or null when it does not say.
-  String? get merchant => merchantFrom(title, text);
+  DateTime get _kl => DateTime.fromMillisecondsSinceEpoch(at, isUtc: true).add(const Duration(hours: 8));
+  static String _two(int n) => n.toString().padLeft(2, '0');
 
   /// YYYY-MM-DD in Malaysia time.
-  String get date {
-    final d = DateTime.fromMillisecondsSinceEpoch(at, isUtc: true).add(const Duration(hours: 8));
-    return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  }
+  String get date => '${_kl.year.toString().padLeft(4, '0')}-${_two(_kl.month)}-${_two(_kl.day)}';
 
   /// HH:mm in Malaysia time.
-  String get time {
-    final d = DateTime.fromMillisecondsSinceEpoch(at, isUtc: true).add(const Duration(hours: 8));
-    return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-  }
+  String get time => '${_two(_kl.hour)}:${_two(_kl.minute)}';
 
-  /// Wallet payments are e-wallet; anything from a bank is treated as debit until you change it.
-  String get paymentType => kind == 'wallet' ? 'ewallet' : 'debit';
+  /// What to file it under when the notification names no shop.
+  String get merchant => shop ?? app;
+
+  /// cash | debit | ewallet | credit_card. [cards] remembers what each card is; null means this card is new, so ask.
+  String? paymentType(Map<String, String> cards) => switch (kind) {
+        'wallet' => 'ewallet',
+        'card' => chosenPay ?? (card == null ? null : cards[card!.toLowerCase()]),
+        _ => 'debit',
+      };
 
   /// A fixed entry id, so saving the same detection twice can never make two entries.
   String get txnId => 'det-$id';
@@ -40,7 +46,7 @@ class Detected {
 /// One line of the log shown in Settings.
 class LogLine {
   const LogLine({required this.kind, required this.at, required this.app, required this.title, required this.text, this.cents});
-  final String kind; // pay | skip
+  final String kind; // pay | skip | merge
   final int at;
   final String app;
   final String title;
@@ -49,9 +55,10 @@ class LogLine {
 }
 
 class Inbox {
-  const Inbox({required this.pending, required this.toSave, required this.log});
-  final List<Detected> pending; // waiting for Save or Ignore, newest first
-  final List<Detected> toSave; // Save was tapped on the notification while the app was closed
+  const Inbox({required this.pending, required this.toSave, required this.renamed, required this.log});
+  final List<Detected> pending; // waiting for Save or Delete, newest first
+  final List<Detected> toSave; // Save was tapped on the banner while the app was closed
+  final List<Detected> renamed; // already dealt with, but a second app has since supplied the shop name
   final List<LogLine> log; // everything seen, newest first
 }
 
@@ -59,6 +66,7 @@ class Inbox {
 Inbox readInbox(String content, Set<String> done) {
   final pays = <String, Detected>{};
   final acts = <String, String>{};
+  final named = <String>{}; // ids whose shop came from a later merge
   final log = <LogLine>[];
   for (final raw in const LineSplitter().convert(content)) {
     if (raw.trim().isEmpty) continue;
@@ -69,73 +77,42 @@ Inbox readInbox(String content, Set<String> done) {
       continue; // a half-written line
     }
     if (j is! Map) continue;
+    final Map<dynamic, dynamic> m = j;
     final k = j['k'];
     final t = j['t'] is int ? j['t'] as int : 0;
-    if (k == 'act' && j['id'] is String && j['a'] is String) {
-      acts[j['id'] as String] = j['a'] as String;
-    } else if (k == 'pay' && j['id'] is String && j['cents'] is int) {
-      final d = Detected(id: j['id'] as String, at: t, app: '${j['app'] ?? ''}', kind: '${j['kind'] ?? 'bank'}', title: '${j['title'] ?? ''}', text: '${j['text'] ?? ''}', cents: j['cents'] as int);
-      pays[d.id] = d;
+    String? str(String key) => m[key] is String && (m[key] as String).isNotEmpty ? m[key] as String : null;
+    final id = str('id');
+    if (k == 'act' && id != null && str('a') != null) {
+      acts[id] = str('a')!;
+      final d = pays[id];
+      if (d != null) {
+        d.chosenPay = str('pay') ?? d.chosenPay;
+        d.via = str('via') ?? 'banner';
+      }
+    } else if (k == 'pay' && id != null && j['cents'] is int) {
+      final d = Detected(id: id, at: t, app: str('app') ?? '', kind: str('kind') ?? 'bank', title: str('title') ?? '', text: str('text') ?? '', cents: j['cents'] as int, shop: str('shop'), card: str('card'));
+      pays[id] = d;
       log.add(LogLine(kind: 'pay', at: t, app: d.app, title: d.title, text: d.text, cents: d.cents));
+    } else if (k == 'merge' && id != null) {
+      final d = pays[id];
+      if (d == null) continue;
+      final app = str('app') ?? '';
+      if (app.isNotEmpty && !d.alsoSeenBy.contains(app)) d.alsoSeenBy.add(app);
+      if (d.shop == null && str('shop') != null) {
+        d.shop = str('shop');
+        named.add(id);
+      }
+      d.card ??= str('card');
+      log.add(LogLine(kind: 'merge', at: t, app: app, title: '', text: 'Same payment as the one from ${d.app}', cents: d.cents));
     } else if (k == 'skip') {
-      log.add(LogLine(kind: 'skip', at: t, app: '${j['app'] ?? ''}', title: '${j['title'] ?? ''}', text: '${j['text'] ?? ''}'));
+      log.add(LogLine(kind: 'skip', at: t, app: str('app') ?? '', title: str('title') ?? '', text: str('text') ?? ''));
     }
   }
   final open = pays.values.where((d) => !done.contains(d.id)).toList()..sort((a, b) => b.at.compareTo(a.at));
   return Inbox(
     pending: [for (final d in open) if (!acts.containsKey(d.id)) d],
     toSave: [for (final d in open) if (acts[d.id] == 'save') d],
+    renamed: [for (final id in named) if (done.contains(id)) pays[id]!],
     log: log.reversed.toList(),
   );
-}
-
-final _amount = RegExp(r'(?:RM|MYR)\s?([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)', caseSensitive: false);
-final _bankWords = RegExp(r'\b(uob|hsbc|cimb|gx ?bank|ryt|hong leong|hlb)\b', caseSensitive: false);
-final _notSpend = RegExp(
-  r'\b(received|receive|credited|cash ?back|refund(ed)?|reversal|reversed|rewards?|vouchers?|otp|tac|verification code|'
-  r'top(ped)?[- ]?up|reload(ed)?|promo(tion)?s?|discounts?|% off|sale|win|earn(ed)?|claim(ed)?|statement|due|reminder|'
-  r'fail(ed)?|unsuccessful|declined|rejected|request(ed|ing)?|limit|login|log in|diterima|gagal)\b',
-  caseSensitive: false,
-);
-final _spend = RegExp(
-  r'\b(paid|payment|pay|spent|purchase(d)?|debited|deducted|charged|transaction|transfer(red)?|sent|withdraw(n|al)?|'
-  r'pembayaran|bayaran|dibayar|ditolak|pindahan)\b',
-  caseSensitive: false,
-);
-
-/// Whole cents paid, or null when the notification is not money going out. [kind] is wallet, bank or sms.
-int? readPayment(String kind, String title, String text) {
-  final all = '$title\n$text';
-  if (kind == 'sms' && !_bankWords.hasMatch(all)) return null;
-  if (_notSpend.hasMatch(all) || !_spend.hasMatch(all)) return null;
-  final m = _amount.firstMatch(all);
-  if (m == null) return null;
-  final v = double.tryParse(m.group(1)!.replaceAll(',', ''));
-  if (v == null) return null;
-  final cents = (v * 100).round();
-  return cents >= 1 && cents <= 100000000 ? cents : null;
-}
-
-final _toShop = RegExp(
-  r'\b(?:paid|payment|pay|spent|purchase|purchased|transaction|transfer|transferred|sent|charged|pembayaran|bayaran|dibayar)\b[^\n]{0,60}?\b(?:to|at|kepada|di)\s+(.+)',
-  caseSensitive: false,
-);
-final _atShop = RegExp(r'(?:\bat\b|@)\s+(.+)', caseSensitive: false);
-final _stop = RegExp(r'\s+(?:on|via|using|with|from|for|ref|reference|is|was|has|have|dated|at|pada|melalui|telah|berjaya)\b|\s+\d{1,2}[/:-]\d|[.,;!?(\n]|\s+(?:RM|MYR)\s?\d', caseSensitive: false);
-
-/// The shop a payment went to, read from wording like "paid RM 5.00 to Mixue Kajang". Null when it is not said.
-String? merchantFrom(String title, String text) {
-  for (final src in [text, '$title $text']) {
-    for (final re in [_toShop, _atShop]) {
-      final m = re.firstMatch(src);
-      if (m == null) continue;
-      var s = m.group(1)!;
-      final cut = _stop.firstMatch(s);
-      if (cut != null) s = s.substring(0, cut.start);
-      s = s.replaceAll(RegExp(r'\s+'), ' ').replaceAll(RegExp(r'''^["'*\s]+|["'*\s]+$'''), '');
-      if (s.length > 40) s = s.substring(0, 40).trim();
-      if (s.length >= 2 && RegExp(r'[A-Za-z]').hasMatch(s) && !_amount.hasMatch(s) && !RegExp(r'^(your|you|the|a|an|my|account|card|wallet)\b', caseSensitive: false).hasMatch(s)) return s;
-    }
-  }
-  return null;
 }

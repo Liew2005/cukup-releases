@@ -38,7 +38,10 @@ Entry fields: `spent_at`, `merchant`, `amount_cents`, `direction` (`spend`/`inco
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/categories` | Spending and income categories. |
+| GET | `/categories` | Spending and income categories, with `cap_default` (does spending here count toward the weekly cap by default). |
+| POST | `/categories` | Body `{ name, kind, cap_default }`. Names are unique (case-insensitive), up to 40 categories. |
+| PUT | `/categories/:id` | Rename, reorder (`sort_order`) or change `cap_default`. "Other" and "Other income" cannot be renamed. |
+| DELETE | `/categories/:id` | Moves the category's entries, repeating items and shop rules to "Other" / "Other income", then removes it. The two fallbacks cannot be deleted. |
 | GET, PUT | `/rules`, `/rules/:merchant_key` | Learned merchant to category rules. |
 | GET, PUT, DELETE | `/bills`, `/bills/:id` | Bills such as SPayLater. |
 | GET, PUT, DELETE | `/recurring`, `/recurring/:id` | Repeating income and spending. |

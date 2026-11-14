@@ -1,17 +1,11 @@
-﻿import { Hono } from 'hono';
+import { Hono } from 'hono';
 import { HttpError, type AppEnv } from '../types';
 import { ID_RE, bad, isInt, isValidDate, normIso, normalizeMerchant, oneOf, readJson, reqStr } from '../util';
 
-export const categories = new Hono<AppEnv>();
 export const rules = new Hono<AppEnv>();
 export const bills = new Hono<AppEnv>();
 export const settings = new Hono<AppEnv>();
 export const recurring = new Hono<AppEnv>();
-
-categories.get('/', async (c) => {
-  const res = await c.env.DB.prepare('SELECT id, name, kind, sort_order FROM categories ORDER BY sort_order').all();
-  return c.json({ categories: res.results });
-});
 
 rules.get('/', async (c) => {
   const res = await c.env.DB

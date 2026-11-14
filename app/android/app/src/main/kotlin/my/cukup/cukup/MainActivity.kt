@@ -11,6 +11,7 @@ import java.io.File
 class MainActivity : FlutterFragmentActivity() {
     private var channel: MethodChannel? = null
     private var pending: String? = null
+    private var pendingConfirm: String? = null // a detected payment whose banner was tapped
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -27,7 +28,11 @@ class MainActivity : FlutterFragmentActivity() {
                 result.success(open(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)))
             } else if (call.method == "appInfo") {
                 result.success(open(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))))
+            } else if (call.method == "takeConfirm") {
+                result.success(pendingConfirm)
+                pendingConfirm = null
             } else if (call.method == "detectCancel") {
+                PaymentInbox.markAnswered(this, call.arguments as String)
                 PaymentPrompt.cancel(this, call.arguments as String)
                 result.success(true)
             } else {
@@ -36,6 +41,13 @@ class MainActivity : FlutterFragmentActivity() {
         }
         channel = ch
         pending = copyShared(intent)
+        pendingConfirm = takeConfirmExtra(intent)
+    }
+
+    private fun takeConfirmExtra(i: Intent?): String? {
+        val id = i?.getStringExtra(PaymentPrompt.EXTRA_CONFIRM) ?: return null
+        i.removeExtra(PaymentPrompt.EXTRA_CONFIRM) // so a rotation or restart does not open it twice
+        return id
     }
 
     private fun open(i: Intent): Boolean = try {
@@ -67,6 +79,11 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        val confirm = takeConfirmExtra(intent)
+        if (confirm != null) {
+            pendingConfirm = confirm
+            channel?.invokeMethod("confirm", null)
+        }
         val path = copyShared(intent)
         if (path != null) {
             pending = path

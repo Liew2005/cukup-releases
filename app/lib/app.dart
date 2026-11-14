@@ -8,6 +8,8 @@ import 'features/add_page.dart';
 import 'features/quick_page.dart';
 import 'features/friends_page.dart';
 import 'features/bills_page.dart';
+import 'features/categories_page.dart';
+import 'features/confirm_sheet.dart';
 import 'features/detected_card.dart';
 import 'features/home_page.dart';
 import 'features/insights_page.dart';
@@ -45,6 +47,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/recurring', builder: (_, _) => const RecurringPage()),
       GoRoute(path: '/add', builder: (_, _) => const AddPage()),
       GoRoute(path: '/quick', builder: (_, _) => const QuickPage()),
+      GoRoute(path: '/categories', builder: (_, _) => const CategoriesPage()),
+      GoRoute(
+        path: '/confirm/:id',
+        pageBuilder: (_, state) => CustomTransitionPage(
+          key: state.pageKey,
+          opaque: false,
+          barrierColor: Colors.black54,
+          transitionDuration: const Duration(milliseconds: 220),
+          child: ConfirmPage(id: state.pathParameters['id']!),
+          transitionsBuilder: (_, a, _, child) => SlideTransition(position: Tween(begin: const Offset(0, 1), end: Offset.zero).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)), child: child),
+        ),
+      ),
       GoRoute(path: '/detected', builder: (_, _) => const DetectedPage()),
       GoRoute(path: '/friends', builder: (_, _) => const FriendsPage()),
       GoRoute(path: '/friends/:id', builder: (_, state) => FriendDetailPage(id: state.pathParameters['id']!)),

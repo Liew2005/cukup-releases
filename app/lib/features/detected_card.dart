@@ -6,61 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../core/format.dart';
 import '../core/pay_notif.dart';
 import '../data/detected.dart';
-import '../data/receipt_models.dart';
 import '../theme/theme.dart';
-import 'dup_dialog.dart';
-
-/// Home: payments Cukup noticed from your wallet and bank notifications, waiting for a yes or no.
-/// Shows nothing when there are none.
-class DetectedCard extends ConsumerWidget {
-  const DetectedCard({super.key});
-
-  Future<void> _save(BuildContext context, WidgetRef ref, Detected d) async {
-    if (!await confirmNotDuplicate(context, ref, merchant: d.merchant ?? d.app, amountCents: d.cents, date: d.date)) return;
-    await ref.read(detectedProvider.notifier).save(d);
-  }
-
-  /// Opens Check and save with the amount and shop filled in, for when something needs changing first.
-  Future<void> _edit(BuildContext context, WidgetRef ref, Detected d) async {
-    final parsed = ParsedReceipt(merchant: d.merchant, date: d.date, items: [], totalCents: d.cents, confidence: d.merchant != null ? 0.85 : 0.6, warnings: d.merchant == null ? ['no_merchant'] : const [], via: 'offline')..isImport = true;
-    await ref.read(detectedProvider.notifier).dismiss(d);
-    if (context.mounted) context.push('/review', extra: parsed);
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pending = ref.watch(detectedProvider);
-    if (pending.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 22),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
-        decoration: BoxDecoration(color: Brand.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: Brand.amber, width: 1.5)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(pending.length == 1 ? 'Did you pay this?' : 'Did you pay these?', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-          for (final d in pending.take(5))
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(children: [
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('${rm(d.cents)} · ${d.merchant ?? d.app}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                    Text('${d.app} · ${shortWhen(d)}', style: const TextStyle(fontSize: 12, color: Brand.muted)),
-                  ]),
-                ),
-                TextButton(onPressed: () => _save(context, ref, d), style: TextButton.styleFrom(foregroundColor: Brand.forest), child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w800))),
-                IconButton(icon: const Icon(Icons.edit_outlined, size: 20), tooltip: 'Check and edit', color: Brand.muted, onPressed: () => _edit(context, ref, d)),
-                IconButton(icon: const Icon(Icons.close, size: 20), tooltip: 'Not a spend', color: Brand.muted, onPressed: () => ref.read(detectedProvider.notifier).dismiss(d)),
-              ]),
-            ),
-          if (pending.length > 5) Padding(padding: const EdgeInsets.only(top: 6, bottom: 6), child: Text('and ${pending.length - 5} more', style: const TextStyle(fontSize: 12, color: Brand.muted))),
-        ]),
-      ),
-    );
-  }
-}
-
-String shortWhen(Detected d) => '${d.date.substring(8, 10)}/${d.date.substring(5, 7)} ${d.time}';
 
 /// Settings > Detect payments: turn it on, and see exactly what was read.
 class DetectedPage extends ConsumerStatefulWidget {
@@ -111,7 +57,7 @@ class _DetectedPageState extends ConsumerState<DetectedPage> with WidgetsBinding
   Future<void> _share() async {
     final b = StringBuffer('Cukup detected payments log\n');
     for (final l in _log.take(300)) {
-      b.writeln('${_when(l.at)} | ${l.app} | ${l.kind == 'pay' ? 'PAY ${rm(l.cents ?? 0)}' : 'skipped'} | ${l.title} | ${l.text.replaceAll('\n', ' ')}');
+      b.writeln('${_when(l.at)} | ${l.app} | ${l.kind == 'pay' ? 'PAY ${rm(l.cents ?? 0)}' : l.kind == 'merge' ? 'same payment ${rm(l.cents ?? 0)}' : 'skipped'} | ${l.title} | ${l.text.replaceAll('\n', ' ')}');
     }
     await SharePlus.instance.share(ShareParams(text: b.toString()));
   }
@@ -138,8 +84,8 @@ class _DetectedPageState extends ConsumerState<DetectedPage> with WidgetsBinding
               ]),
               const SizedBox(height: 10),
               const Text(
-                'When TNG eWallet, ShopeePay, Grab or your bank app (UOB, HSBC, CIMB, GXBank, Ryt Bank, HLB) tells you a payment went through, '
-                'Cukup asks whether to save it. Notifications from other apps are ignored, and nothing is sent anywhere: it is all read on this phone.',
+                'When TNG eWallet, ShopeePay, Grab, Google Wallet or your bank app (AmBank, UOB, HSBC, CIMB, GXBank, Ryt Bank, HLB) tells you a payment went through, '
+                'a banner asks whether to save it. Nothing is recorded until you tap Save. Notifications from other apps are ignored, and nothing is sent anywhere: it is all read on this phone.',
                 style: small,
               ),
               const SizedBox(height: 12),
@@ -168,7 +114,7 @@ class _DetectedPageState extends ConsumerState<DetectedPage> with WidgetsBinding
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   Expanded(child: Text('${l.app} · ${_when(l.at)}', style: const TextStyle(fontSize: 12, color: Brand.muted))),
-                  Text(l.kind == 'pay' ? rm(l.cents ?? 0) : 'Skipped', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: l.kind == 'pay' ? Brand.forest : Brand.muted)),
+                  Text(l.kind == 'pay' ? rm(l.cents ?? 0) : l.kind == 'merge' ? 'Same payment' : 'Skipped', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: l.kind == 'pay' ? Brand.forest : Brand.muted)),
                 ]),
                 const SizedBox(height: 2),
                 Text([l.title, l.text].where((s) => s.isNotEmpty).join(': '), maxLines: 4, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14)),

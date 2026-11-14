@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -107,6 +107,9 @@ class ApiClient {
   }
 
   Future<List<dynamic>> bills() async => ((await _send('GET', '/bills')) as Map)['bills'] as List<dynamic>;
+  Future<void> addCategory(String name, String kind, bool capDefault) => _send('POST', '/categories', body: {'name': name, 'kind': kind, 'cap_default': capDefault});
+  Future<void> putCategory(int id, Map<String, dynamic> body) => _send('PUT', '/categories/$id', body: body);
+  Future<void> deleteCategory(int id) => _send('DELETE', '/categories/$id');
   Future<void> putBill(String id, Map<String, dynamic> body) => _send('PUT', '/bills/$id', body: body);
   Future<void> deleteBill(String id) async {
     try {
