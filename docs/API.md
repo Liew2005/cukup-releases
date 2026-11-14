@@ -54,6 +54,13 @@ Entry fields: `spent_at`, `merchant`, `amount_cents`, `direction` (`spend`/`inco
 | GET | `/ledger` | The ledger document and its `updated_at`. `404` if none yet. |
 | PUT | `/ledger` | Store the ledger. Validated, limited to 900 KB, last write wins. If the server copy is newer it returns `{ "stored": false, "doc": ..., "updated_at": ... }` so the client can adopt it. |
 
+## App state
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/state` | Settings-like data that is not an entry (savings goal and sweeps, shop rules, remembered cards, reminder switches, pay link) as `{ doc, updated_at }`. The document is `{ "v": 1, "kv": { key: value } }` with text values. |
+| PUT | `/state` | Store the document. Validated and capped at 400 KB. The phone merges before writing; if the server copy is newer it returns `{ "stored": false, doc, updated_at }`. |
+
 ## Receipts and export
 
 | Method | Path | Description |

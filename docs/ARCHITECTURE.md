@@ -113,6 +113,12 @@ The service and the app communicate through files in the app's private storage, 
 
 Tapping the banner starts the app with the detection id, which opens a Confirm sheet (a transparent route over whatever screen was showing) for editing before saving.
 
+**Saving while the app is closed.** The banner's Save button records the tap, then starts a headless Flutter engine through the home-screen widget package's background receiver and WorkManager. The Dart entry point (`lib/data/background.dart`) builds a Riverpod container and runs the same controller the app uses: create the entry, update the widget, refresh reminders, and wait for a sync. It opens its own database connection, so when the app returns to the foreground it marks the entry tables as changed to refresh its lists. Because entries have fixed ids, the background run and the open app can both try to save and still produce one entry.
+
+## App state sync
+
+Small settings-like records (savings goal and sweeps, shop-to-category rules, remembered cards, reminder switches, pay link) are local key-value rows. They sync as one document, `{ "v": 1, "kv": {...} }`. The phone remembers the document as it stood after the last sync, which lets a pure function (`core/app_state.dart`, unit tested) decide the merge: if nothing changed locally, take the server copy; if something did, keep both and let the phone win conflicts. These values are only ever added or changed, never removed, so the union loses nothing. Only an allowlist of keys travels, in both directions, so a bad document cannot touch unrelated settings.
+
 ## Categories
 
 Categories are owned by the server and replaced wholesale on each pull, so the phone never has to merge them. Each carries `cap_default`, which sets the starting position of the "counts toward weekly cap" switch for new entries. Deleting a category reassigns its entries, repeating items and shop rules to a fixed fallback ("Other" or "Other income") in one batch and bumps `updated_at`, so the change reaches every device through the normal sync.

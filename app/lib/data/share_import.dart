@@ -42,6 +42,11 @@ final shareImportProvider = Provider<void>((ref) {
     if (call.method == 'shared') await take();
     if (call.method == 'confirm') await confirm();
   });
+  // A reminder that carries a screen (the monthly summary) was tapped.
+  final reminders = ref.read(notificationsProvider);
+  reminders.onOpen = (route) => ref.read(routerProvider).push(route);
+  reminders.openIfLaunchedFromReminder();
+
   take(); // a screenshot that opened the app from cold
   confirm(); // a banner tap that opened the app from cold
   ref.onDispose(() => _channel.setMethodCallHandler(null));

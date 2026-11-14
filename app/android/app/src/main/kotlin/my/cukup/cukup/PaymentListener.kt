@@ -260,7 +260,7 @@ object PaymentPrompt {
     }
 }
 
-/** Save / Delete tapped on the banner. The choice is written down; Flutter acts on it the next time the app is open. */
+/** Save / Delete tapped on the banner. The choice is written down, then the app's own code is started in the background to act on it. */
 class PaymentActionReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
         val id = i.getStringExtra("id") ?: return
@@ -275,5 +275,22 @@ class PaymentActionReceiver : BroadcastReceiver() {
         })
         PaymentInbox.markAnswered(c, id)
         PaymentPrompt.cancel(c, id)
+        if (a == "save") saveNow(c)
+    }
+
+    /**
+     * Asks the app's own code to run for a moment without a screen (lib/data/background.dart), so the entry, the widget
+     * and the server are up to date straight away. If Android refuses, the app does the same when it next opens.
+     */
+    private fun saveNow(c: Context) {
+        try {
+            c.sendBroadcast(
+                Intent().setClassName(c, "es.antonborri.home_widget.HomeWidgetBackgroundReceiver")
+                    .setAction("es.antonborri.home_widget.action.BACKGROUND")
+                    .setData(android.net.Uri.parse("cukup://detected/save")),
+            )
+        } catch (e: Exception) {
+            // saved on next open instead
+        }
     }
 }

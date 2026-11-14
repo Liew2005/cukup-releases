@@ -7,6 +7,7 @@ import { categories } from './routes/categories';
 import { bills, recurring, rules, settings } from './routes/reference';
 import { summary } from './routes/summary';
 import { ledger } from './routes/ledger';
+import { state } from './routes/state';
 import { transactions } from './routes/transactions';
 import { HttpError, type AppEnv } from './types';
 
@@ -25,6 +26,7 @@ app.route('/bills', bills);
 app.route('/recurring', recurring);
 app.route('/settings', settings);
 app.route('/ledger', ledger);
+app.route('/state', state);
 app.route('/parse-receipt', parse);
 app.route('/', exportRoute);
 

@@ -5,10 +5,12 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'api.dart';
+import 'app_state.dart';
 import 'ledger.dart' show syncLedger;
 import 'notifications.dart';
 import 'recurring_poster.dart';
 import 'scan_service.dart';
+import 'sweeps.dart' show sweepTickProvider;
 import 'db.dart';
 import '../core/cap_rule.dart';
 import '../core/time.dart';
@@ -268,6 +270,11 @@ class SyncController extends Notifier<SyncState> {
       await syncLedger(db, api);
     } on ApiException catch (e) {
       if (e.status != 404) rethrow; // an older server without the friends ledger: nothing to sync
+    }
+    try {
+      if (await syncAppState(db, api)) ref.read(sweepTickProvider.notifier).state++; // goal, sweeps, shop rules, cards or switches came in from the server
+    } on ApiException catch (e) {
+      if (e.status != 404) rethrow; // an older server without app state
     }
     if (newest != null) await db.setKv('meta.pull_cursor', newest);
     await db.setKv('meta.last_sync', nowIso());

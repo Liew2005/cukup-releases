@@ -11,7 +11,7 @@ Scan a receipt, split the bill with friends, and stay under a weekly cap, all wi
 ![TypeScript](https://img.shields.io/badge/TypeScript-Hono-3178C6?logo=typescript&logoColor=white)
 ![Platform](https://img.shields.io/badge/Android-sideloaded-3DDC84?logo=android&logoColor=white)
 ![Cost](https://img.shields.io/badge/running%20cost-RM%200-2ea44f)
-![Tests](https://img.shields.io/badge/tests-115%20Flutter%20%2B%209%20Kotlin%20%2B%20worker%20suites-brightgreen)
+![Tests](https://img.shields.io/badge/tests-129%20Flutter%20%2B%209%20Kotlin%20%2B%20worker%20suites-brightgreen)
 
 [Download](#download) · [Features](#features) · [Architecture](#architecture) · [Engineering highlights](#engineering-highlights) · [Getting started](#getting-started) · [Docs](#documentation)
 
@@ -50,7 +50,8 @@ It is a personal project I designed, built, and use every day. It covers the ful
 | **Custom categories** | Add, rename, reorder and delete categories. Each one has a "counts toward weekly cap" setting, so bills and utilities can be recorded without eating the week. |
 | **Bills and recurring** | SPayLater and other bills, plus rent, salary and subscriptions that post themselves each month, including months missed while the app was closed. |
 | **Savings sweep** | Money left under last week's cap can be moved toward a savings goal in one tap. |
-| **Insights** | Period totals, a category donut, an 8-week trend, and a weekly pace chart. |
+| **Insights** | Period totals, a category donut, an 8-week trend and a weekly pace chart. A "Month in review" sums up each month: spent versus the month before, money in and kept, where it went, the biggest purchase and weeks finished under the cap. |
+| **Search and filters** | Activity can be searched by shop, note or category and narrowed by period, payment type, direction and "outside the weekly cap", with a running total for whatever is shown. |
 | **Native touches** | Home-screen widget, Quick Settings tile and launcher shortcut for Quick add, local notifications (bills, daily, weekly, cap alerts), biometric app lock, CSV export. |
 | **OTA updates** | The app checks a public release feed and installs new APKs itself. |
 
@@ -100,7 +101,8 @@ The phone is the source of truth for the person using it and works fully offline
 
 - **Money is never a float.** Every amount is an integer number of sen. Splits use largest-remainder allocation so shares always add up to the receipt exactly.
 - **Don't trust the model.** Gemini output is passed through a reconciliation step (`worker/src/receipt.ts`) that enforces quantity x unit price, copies only printed tax lines, and flags totals that do not match, instead of silently "fixing" them.
-- **Offline first, sync that cannot double-post.** Entries have client-made UUIDs and soft deletes, so syncing twice never duplicates. Recurring entries use fixed ids per item and month.
+- **Offline first, sync that cannot double-post.** Entries have client-made UUIDs and soft deletes, so syncing twice never duplicates. Recurring entries use fixed ids per item and month. Settings-like data (savings goal, shop rules, remembered cards, reminder switches) syncs as one merged document.
+- **Headless save.** Tapping Save on a payment banner starts the app's own Dart code in the background with no screen, so the entry, the home-screen widget, the cap alert and the server are up to date without opening the app. There is one copy of the save logic, and it is idempotent.
 - **Derived, not stored.** The weekly carry-over is computed from entries every time, so it can never drift out of date.
 - **Pure, tested core.** Split maths, carry-over, duplicate detection, recurring schedules, the notification and screenshot parsers and the update parser are plain Dart with unit tests and no Flutter dependency.
 - **Private by design.** Payment detection uses an allowlist of apps, masks long numbers before logging, never logs personal messages, and keeps everything on the device.

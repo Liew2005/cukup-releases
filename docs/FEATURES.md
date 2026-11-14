@@ -9,6 +9,7 @@
 - **Google Wallet taps** carry the shop name and the card. The first time a card appears the banner asks Credit or Debit and remembers the answer for that card.
 - **One purchase, one prompt.** A card payment is often reported by both the bank and Google Wallet. A second app reporting the same amount within 30 minutes is merged into the first, and fills in the shop name if the first one had none.
 - **Ignored:** money coming in, top-ups, codes, adverts and failed payments.
+- **Saved straight away.** Tapping Save on the banner creates the entry in the background, updates the home-screen widget, re-checks the cap alert and syncs, without opening the app. If Android will not run the background step, the entry is created the next time the app opens instead.
 - **No doubles:** a saved entry uses a fixed id, so the same detection can never be saved twice.
 - **Transparent:** Settings shows exactly what was read, merged and skipped, with long numbers hidden, and can share that list to help tune the rules.
 
@@ -33,6 +34,10 @@
 **Recurring.** Rent, salary and subscriptions that add themselves each month. After the app has been closed for a while it posts every missed month (up to 12) exactly once, and an entry you delete stays deleted.
 
 **Insights.** Income and spending for a chosen period, a donut by category, an 8-week trend and the entries behind each number.
+
+**Month in review.** One screen per month, reachable from Insights: what you spent and how that compares with the month before, money in, what you kept, the top categories with their share, the biggest purchase, how many weeks finished at or under the cap, what was set aside for your goal, and what friends still owe. A reminder on the 1st at 9am opens it on the month that just ended; it has its own switch in Settings.
+
+**Search and filters.** Activity has a search box (shop, note or category), chips for spent / income and category, and a Filters sheet for period (this week, this month, last month or picked dates), payment type and "only outside the weekly cap". When anything is narrowed, a line shows how many entries match and their totals.
 
 ## Friends and shared bills
 
@@ -62,5 +67,7 @@
 - In-app updates from a public release feed
 
 ## Offline behaviour
+
+**What survives a new phone.** Entries, bills, repeating items, categories and the friends ledger always synced. The savings goal and sweeps, shop-to-category rules, remembered cards, reminder switches, the carry-over switch and the pay link now sync too. App lock, notification access and the detection log stay on the phone on purpose.
 
 Everything except server sync and AI receipt parsing works without a connection. Receipts fall back to the on-device parser, and changes sync when the phone is next online.

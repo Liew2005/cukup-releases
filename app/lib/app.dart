@@ -14,6 +14,9 @@ import 'features/detected_card.dart';
 import 'features/home_page.dart';
 import 'features/insights_page.dart';
 import 'features/login_page.dart';
+import 'features/month_review_page.dart';
+import 'core/month_review.dart';
+import 'core/time.dart';
 import 'features/lock_gate.dart';
 import 'features/recurring_page.dart';
 import 'features/review_page.dart';
@@ -59,6 +62,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           transitionsBuilder: (_, a, _, child) => SlideTransition(position: Tween(begin: const Offset(0, 1), end: Offset.zero).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)), child: child),
         ),
       ),
+      GoRoute(path: '/month', builder: (_, _) => const MonthReviewPage()),
+      GoRoute(path: '/month/:ym', builder: (_, state) => MonthReviewPage(month: state.pathParameters['ym'] == 'last' ? shiftMonth(todayKL().substring(0, 7), -1) : state.pathParameters['ym'])),
       GoRoute(path: '/detected', builder: (_, _) => const DetectedPage()),
       GoRoute(path: '/friends', builder: (_, _) => const FriendsPage()),
       GoRoute(path: '/friends/:id', builder: (_, state) => FriendDetailPage(id: state.pathParameters['id']!)),

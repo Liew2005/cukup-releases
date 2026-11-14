@@ -47,6 +47,12 @@
             </intent-filter>
         </service>
         <receiver android:name=".PaymentActionReceiver" android:exported="false" />
+        <!-- Runs the app's Dart code without a screen when Save is tapped on a payment banner. -->
+        <receiver android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="es.antonborri.home_widget.action.BACKGROUND" />
+            </intent-filter>
+        </receiver>
         <service android:name=".QuickAddTile" android:label="@string/shortcut_quick_add_short" android:icon="@drawable/ic_stat_cukup" android:exported="true" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />

@@ -160,6 +160,7 @@ class SettingsPage extends ConsumerWidget {
               const NotifSwitch(kind: 'bills', title: 'Bill reminders', subtitle: '3 days and 1 day before, and on the due day, 9am'),
               const NotifSwitch(kind: 'daily', title: 'Evening nudge', subtitle: '9pm, only on days you have logged nothing'),
               const NotifSwitch(kind: 'weekly', title: 'Sunday summary', subtitle: 'How the week went, Sunday 8pm'),
+              const NotifSwitch(kind: 'monthly', title: 'Monthly summary', subtitle: 'The 1st at 9am: how last month went'),
               const NotifSwitch(kind: 'cap', title: 'Cap alert', subtitle: 'At 80% and 100% of the weekly cap. Never more than one nudge a day'),
               ListTile(
                 title: const Text('Send a test notification'),

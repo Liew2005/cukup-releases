@@ -17,6 +17,9 @@ const _channel = MethodChannel('cukup/share');
 const _doneKey = 'detected.done';
 const _cardsKey = 'detected.cards';
 
+/// True only inside the background run started by a banner Save (data/background.dart): no screen, so no lifecycle to watch.
+bool detectedHeadless = false;
+
 Future<String> _dir() async => (await getApplicationSupportDirectory()).path;
 
 /// The file the Android listener writes (app-private). Empty when nothing was ever detected.
@@ -81,10 +84,15 @@ class DetectedController extends Notifier<List<Detected>> {
 
   @override
   List<Detected> build() {
-    final watcher = AppLifecycleListener(onResume: refresh);
-    ref.onDispose(watcher.dispose);
-    ref.listen(categoriesProvider, (_, _) => refresh()); // a new or renamed category changes the guesses
-    Future.microtask(refresh);
+    if (!detectedHeadless) {
+      final watcher = AppLifecycleListener(onResume: () {
+        _db.markTablesUpdated({_db.txns, _db.txnItems, _db.pendingOps}); // a banner Save may have written while the app was in the background
+        refresh();
+      });
+      ref.onDispose(watcher.dispose);
+      ref.listen(categoriesProvider, (_, _) => refresh()); // a new or renamed category changes the guesses
+      Future.microtask(refresh);
+    }
     return const [];
   }
 
@@ -118,8 +126,10 @@ class DetectedController extends Notifier<List<Detected>> {
     return cats.where((c) => c.id == learned).firstOrNull ?? cats.where((c) => c.name.toLowerCase() == 'other').firstOrNull ?? cats.first;
   }
 
-  Future<void> refresh() async {
-    if (_busy) return;
+  /// Reads what the listener left and saves anything whose banner Save was tapped. Returns true when an entry was written.
+  /// [sync] false leaves the upload to the caller (the background run waits for it before Android stops it).
+  Future<bool> refresh({bool sync = true}) async {
+    if (_busy) return false;
     _busy = true;
     try {
       try {
@@ -142,9 +152,10 @@ class DetectedController extends Notifier<List<Detected>> {
         final c = await _categoryFor(d.merchant, cats);
         if (c != null) _guess[d.id] = c;
       }
-      if (changed) ref.read(syncProvider.notifier).run();
+      if (changed && sync) ref.read(syncProvider.notifier).run();
       state = inbox.pending;
       await _exportContext(cats);
+      return changed;
     } finally {
       _busy = false;
     }

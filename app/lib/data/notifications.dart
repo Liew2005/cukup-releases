@@ -16,6 +16,9 @@ class NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
 
+  /// Set by the app: where to go when a reminder that carries a screen (like the monthly summary) is tapped.
+  void Function(String route)? onOpen;
+
   static const _weeklyId = 1;
   static const _nudgeId = 2;
   static const _testId = 3;
@@ -38,8 +41,23 @@ class NotificationService {
     tzdata.initializeTimeZones();
     // The bundled timezone data has no Asia/Kuala_Lumpur (it became a link to Singapore). Same clock, UTC+8, no daylight saving.
     tz.setLocalLocation(tz.getLocation('Asia/Singapore'));
-    await _plugin.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('ic_stat_cukup')));
+    await _plugin.initialize(
+      settings: const InitializationSettings(android: AndroidInitializationSettings('ic_stat_cukup')),
+      onDidReceiveNotificationResponse: (r) {
+        final route = r.payload;
+        if (route != null && route.startsWith('/')) onOpen?.call(route);
+      },
+    );
     _ready = true;
+  }
+
+  /// When the app was opened by tapping a reminder that carries a screen, go there. Call once after [onOpen] is set.
+  Future<void> openIfLaunchedFromReminder() async {
+    try {
+      final d = await _plugin.getNotificationAppLaunchDetails();
+      final route = d?.didNotificationLaunchApp == true ? d?.notificationResponse?.payload : null;
+      if (route != null && route.startsWith('/')) onOpen?.call(route);
+    } catch (_) {}
   }
 
   AndroidFlutterLocalNotificationsPlugin? get _android => _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -65,16 +83,17 @@ class NotificationService {
     return tz.TZDateTime(tz.local, d.year, d.month, d.day, hour);
   }
 
-  /// A reminder on the 1st of every month, 10am, to save a CSV backup of last month.
+  /// The 1st of every month, 9am: how last month went. Tapping it opens Month in review on last month.
   Future<void> _scheduleMonthly() async {
     final now = tz.TZDateTime.now(tz.local);
     final today = todayKL();
-    var fire = _at9(firstOfMonth(today), 10);
-    if (!fire.isAfter(now)) fire = _at9(nextFirst(today), 10);
+    var fire = _at9(firstOfMonth(today));
+    if (!fire.isAfter(now)) fire = _at9(nextFirst(today));
     await _plugin.zonedSchedule(
       id: _monthlyId,
-      title: 'Monthly export',
-      body: 'It is the 1st. Save last month as a CSV: Settings, then Export everything.',
+      title: 'Your month in Cukup',
+      body: 'A new month has started. See how last month went: what you spent, what you kept and where it went.',
+      payload: '/month/last',
       scheduledDate: fire,
       notificationDetails: _details,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -88,7 +107,7 @@ class NotificationService {
     await _plugin.cancelAllPendingNotifications();
     if (await isOn('bills')) await _scheduleBills();
     if (await isOn('weekly')) await _scheduleWeekly();
-    await _scheduleMonthly();
+    if (await isOn('monthly')) await _scheduleMonthly();
     if (await isOn('cap')) await _capNudge();
     if (await isOn('daily')) await _scheduleDaily();
   }
@@ -173,7 +192,7 @@ class NotificationService {
     );
   }
 
-  /// Each kind of reminder can be switched off: bills, daily, weekly, cap. All start on.
+  /// Each kind of reminder can be switched off: bills, daily, weekly, monthly, cap. All start on.
   Future<bool> isOn(String kind) async => (await _db.getKv('setting.n_$kind')) != '0';
 
   Future<void> setOn(String kind, bool on) async {

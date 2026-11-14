@@ -102,6 +102,10 @@ class ApiClient {
   Future<Map<String, dynamic>> putLedger(String doc, String updatedAt) async =>
       Map<String, dynamic>.from((await _send('PUT', '/ledger', body: {'doc': doc, 'updated_at': updatedAt})) as Map);
 
+  /// App state that is not an entry (goal, sweeps, shop rules, cards, switches): `{doc, updated_at}`, both null when the server has none.
+  Future<Map<String, dynamic>> appState() async => Map<String, dynamic>.from((await _send('GET', '/state')) as Map);
+  Future<void> putAppState(String doc, String updatedAt) => _send('PUT', '/state', body: {'doc': doc, 'updated_at': updatedAt});
+
   Future<void> putSetting(String key, String value) async {
     await _send('PUT', '/settings/$key', body: {'value': value});
   }

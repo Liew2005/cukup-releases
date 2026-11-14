@@ -192,3 +192,27 @@ test('custom categories: add, rename, keep out of the cap, delete moves entries 
   assert.equal((await api('DELETE', '/categories/' + cat.id)).status, 404);
   await api('DELETE', '/transactions/' + id);
 });
+
+test('app state: stores a kv document, newest write wins, rejects bad shapes', async () => {
+  const doc = (kv) => JSON.stringify({ v: 1, kv });
+  const t1 = new Date().toISOString();
+  const put = await api('PUT', '/state', { doc: doc({ 'goal.name': 'Trip', 'rule.mixue': '1' }), updated_at: t1 });
+  assert.equal(put.status, 200);
+  assert.equal(put.json.stored, true);
+
+  const got = await api('GET', '/state');
+  assert.equal(got.status, 200);
+  assert.deepEqual(JSON.parse(got.json.doc).kv, { 'goal.name': 'Trip', 'rule.mixue': '1' });
+  assert.equal(got.json.updated_at, t1);
+
+  // an older write does not replace a newer copy: the server hands its copy back
+  const stale = await api('PUT', '/state', { doc: doc({ 'goal.name': 'Old' }), updated_at: '2020-01-01T00:00:00.000Z' });
+  assert.equal(stale.json.stored, false);
+  assert.equal(JSON.parse(stale.json.doc).kv['goal.name'], 'Trip');
+
+  assert.equal((await api('PUT', '/state', { doc: 'not json', updated_at: t1 })).status, 400);
+  assert.equal((await api('PUT', '/state', { doc: JSON.stringify({ v: 1 }), updated_at: t1 })).status, 400);
+  assert.equal((await api('PUT', '/state', { doc: doc({ a: 5 }), updated_at: t1 })).status, 400);
+  assert.equal((await api('PUT', '/state', { doc: doc({ a: '1' }) })).status, 400);
+  assert.equal((await api('GET', '/state', null, false)).status, 401);
+});

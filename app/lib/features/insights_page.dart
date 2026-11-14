@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/format.dart';
 import '../core/time.dart';
@@ -126,6 +127,15 @@ class _InsightsPageState extends ConsumerState<InsightsPage> {
               onPressed: () => exportCsv(context, inRange, names, label: '$from-to-$to'),
             ),
           ]),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => context.push('/month'),
+              icon: const Icon(Icons.calendar_month_outlined, size: 18),
+              label: const Text('Month in review'),
+              style: TextButton.styleFrom(foregroundColor: Brand.forest, padding: EdgeInsets.zero),
+            ),
+          ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(children: [
