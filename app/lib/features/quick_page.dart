@@ -7,19 +7,18 @@ import 'package:uuid/uuid.dart';
 import '../core/format.dart';
 import '../core/ledger.dart';
 import '../core/split_bill.dart';
+import '../core/quick.dart' show applyKey;
 import '../data/ledger.dart';
 import 'friend_picker.dart';
-import '../core/quick.dart';
 import '../core/time.dart';
 import '../data/db.dart';
 import '../data/providers.dart';
-import '../data/widget_sync.dart';
 import '../theme/theme.dart';
 import 'cap_switch.dart';
 import 'chips.dart';
 import 'dup_dialog.dart';
 
-/// Fast spending entry: tap a usual shop (or type one), key in the amount, save.
+/// Fast spending entry: type where, key in the amount, save.
 class QuickPage extends ConsumerStatefulWidget {
   const QuickPage({super.key});
   @override
@@ -29,7 +28,6 @@ class QuickPage extends ConsumerStatefulWidget {
 class _QuickPageState extends ConsumerState<QuickPage> {
   String _amount = '';
   final _name = TextEditingController();
-  QuickMerchant? _picked;
   int? _catId; // chosen category; follows the shop's learned category until you tap one yourself
   bool _catManual = false;
   bool? _capOverride; // null follows the category: Bills stays out of the cap
@@ -44,18 +42,9 @@ class _QuickPageState extends ConsumerState<QuickPage> {
     super.dispose();
   }
 
-  void _pick(QuickMerchant m) => setState(() {
-        _picked = m;
-        _name.text = m.name;
-        _catId = m.categoryId; // picking a usual shop brings back its usual category
-        _catManual = false;
-        _amount = (m.lastAmountCents / 100).toStringAsFixed(2).replaceFirst(RegExp(r'\.00$'), '');
-        _error = null;
-      });
 
   /// Typing a shop you have used before suggests its usual category.
   Future<void> _nameChanged(String v) async {
-    setState(() => _picked = null);
     if (_catManual || v.trim().isEmpty) return;
     final learned = await ref.read(dbProvider).getRule(v.trim());
     if (learned != null && mounted && !_catManual && _name.text == v) setState(() => _catId = learned);
@@ -72,10 +61,10 @@ class _QuickPageState extends ConsumerState<QuickPage> {
     if (name.isEmpty) return setState(() => _error = 'Where did you spend it?');
     final db = ref.read(dbProvider);
     final spendCats = cats.where((c) => c.kind == 'spend');
-    var catId = _catId ?? (_picked != null && _picked!.name.toLowerCase() == name.toLowerCase() ? _picked!.categoryId : await db.getRule(name));
+    var catId = _catId ?? await db.getRule(name);
     catId ??= spendCats.firstOrNull?.id;
     if (catId == null) return setState(() => _error = 'Categories have not loaded yet. Open Home once while online.');
-    final payment = _picked != null && _picked!.name.toLowerCase() == name.toLowerCase() ? _picked!.paymentType : 'ewallet';
+    const payment = 'ewallet'; // More options has the full form with payment type, date and note
     setState(() {
       _saving = true;
       _error = null;
@@ -98,7 +87,7 @@ class _QuickPageState extends ConsumerState<QuickPage> {
         createdAt: now,
         updatedAt: now,
         direction: const Value('spend'),
-        countsTowardCap: Value(payment != 'spaylater' && (_capOverride ?? capDefault(cats.where((c) => c.id == catId).firstOrNull?.name))),
+        countsTowardCap: Value(_capOverride ?? capDefault(cats.where((c) => c.id == catId).firstOrNull?.name)),
         source: const Value('quick'),
       ),
       const [],
@@ -118,8 +107,9 @@ class _QuickPageState extends ConsumerState<QuickPage> {
   @override
   Widget build(BuildContext context) {
     final cats = ref.watch(categoriesProvider).asData?.value ?? const <Cat>[];
-    final merchants = ref.watch(quickMerchantsProvider).asData?.value ?? const <QuickMerchant>[];
     final cents = parseCents(_amount);
+    final spendCats = cats.where((c) => c.kind == 'spend').toList();
+    final selectedCat = _catId ?? spendCats.firstOrNull?.id;
 
     return Scaffold(
       appBar: AppBar(
@@ -128,68 +118,63 @@ class _QuickPageState extends ConsumerState<QuickPage> {
         actions: [TextButton(onPressed: () => context.pushReplacement('/add'), child: const Text('More options', style: TextStyle(color: Brand.forest, fontWeight: FontWeight.w600)))],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-          child: Column(children: [
-            if (merchants.isNotEmpty)
-              Wrap(spacing: 8, runSpacing: 8, children: [
-                for (final m in merchants)
-                  ActionChip(
-                    label: Text('${m.name} · ${rm(m.lastAmountCents)}'),
-                    onPressed: () => _pick(m),
-                    backgroundColor: _picked?.name == m.name ? Brand.forest : null,
-                    labelStyle: TextStyle(fontWeight: FontWeight.w600, color: _picked?.name == m.name ? Brand.paper : null),
-                  ),
-              ]),
-            const SizedBox(height: 12),
-            TextField(controller: _name, textCapitalization: TextCapitalization.words, onChanged: _nameChanged, decoration: const InputDecoration(labelText: 'Where')),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: PickChips<int>(
-                options: {for (final c in cats.where((c) => c.kind == 'spend')) c.id: c.name},
-                selected: _catId ?? cats.where((c) => c.kind == 'spend').firstOrNull?.id,
-                onSelected: (id) => setState(() {
-                  _catId = id;
-                  _catManual = true;
-                }),
-              ),
-            ),
-            const SizedBox(height: 12),
-            CapSwitch(value: _capOverride ?? capDefault(cats.where((c) => c.id == (_catId ?? cats.where((c) => c.kind == 'spend').firstOrNull?.id)).firstOrNull?.name), onChanged: (v) => setState(() => _capOverride = v)),
-            Align(alignment: Alignment.centerLeft, child: const FieldLabel('Split evenly with')),
-            Align(alignment: Alignment.centerLeft, child: FriendChips(selected: _friends, onChanged: (s) => setState(() => _friends = s))),
-            if (_friends.isNotEmpty)
-              Row(children: [
-                Expanded(child: Text(cents == null || cents <= 0 ? 'Key in the bill to see the split.' : 'You pay ${rm(_split(cents)[me] ?? 0)}, they owe ${rm(cents - (_split(cents)[me] ?? 0))} in total', style: const TextStyle(fontSize: 13, color: Brand.muted))),
-                const Text('Treat', style: TextStyle(fontWeight: FontWeight.w600)),
-                Switch(value: _treat, activeThumbColor: Brand.paper, activeTrackColor: Brand.forest, onChanged: (v) => setState(() => _treat = v)),
-              ]),
-            Expanded(
-              child: Center(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(_amount.isEmpty ? 'RM 0' : 'RM $_amount', style: TextStyle(fontSize: 56, fontWeight: FontWeight.w800, letterSpacing: -2, color: _amount.isEmpty ? Brand.muted : Brand.forest)),
+        child: Column(children: [
+          // The form: scrolls when there are many categories or friends.
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                TextField(controller: _name, textCapitalization: TextCapitalization.words, onChanged: _nameChanged, decoration: const InputDecoration(labelText: 'Where')),
+                const SizedBox(height: 16),
+                const FieldLabel('Category'),
+                PickChips<int>(
+                  options: {for (final c in spendCats) c.id: c.name},
+                  selected: selectedCat,
+                  onSelected: (id) => setState(() {
+                    _catId = id;
+                    _catManual = true;
+                  }),
                 ),
+                const SizedBox(height: 8),
+                CapSwitch(value: _capOverride ?? capDefault(spendCats.where((c) => c.id == selectedCat).firstOrNull?.name), onChanged: (v) => setState(() => _capOverride = v)),
+                const FieldLabel('Split evenly with'),
+                FriendChips(selected: _friends, onChanged: (s) => setState(() => _friends = s)),
+                if (_friends.isNotEmpty)
+                  Row(children: [
+                    Expanded(child: Text(cents == null || cents <= 0 ? 'Key in the bill to see the split.' : 'You pay ${rm(_split(cents)[me] ?? 0)}, they owe ${rm(cents - (_split(cents)[me] ?? 0))} in total', style: const TextStyle(fontSize: 13, color: Brand.muted))),
+                    const Text('Treat', style: TextStyle(fontWeight: FontWeight.w600)),
+                    Switch(value: _treat, activeThumbColor: Brand.paper, activeTrackColor: Brand.forest, onChanged: (v) => setState(() => _treat = v)),
+                  ]),
+              ]),
+            ),
+          ),
+          // Always on screen: the amount, the keypad and Save.
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+            decoration: const BoxDecoration(border: Border(top: BorderSide(color: Brand.line))),
+            child: Column(children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(_amount.isEmpty ? 'RM 0' : 'RM $_amount', style: TextStyle(fontSize: 44, fontWeight: FontWeight.w800, letterSpacing: -1.6, color: _amount.isEmpty ? Brand.muted : Brand.forest)),
               ),
-            ),
-            if (_error != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(_error!, style: const TextStyle(color: Brand.danger, fontWeight: FontWeight.w600))),
-            _Keypad(onKey: (k) => setState(() {
-              _amount = applyKey(_amount, k);
-              _error = null;
-            })),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(onPressed: _saving || cents == null || cents <= 0 ? null : () => _save(cats), child: const Text('Save')),
-            ),
-          ]),
-        ),
+              if (_error != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(_error!, style: const TextStyle(color: Brand.danger, fontWeight: FontWeight.w600))),
+              const SizedBox(height: 4),
+              _Keypad(onKey: (k) => setState(() {
+                _amount = applyKey(_amount, k);
+                _error = null;
+              })),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(onPressed: _saving || cents == null || cents <= 0 ? null : () => _save(cats), child: const Text('Save')),
+              ),
+            ]),
+          ),
+        ]),
       ),
     );
   }
 }
-
 class _Keypad extends StatelessWidget {
   const _Keypad({required this.onKey});
   final void Function(String) onKey;
@@ -208,7 +193,7 @@ class _Keypad extends StatelessWidget {
           for (final k in row)
             Expanded(
               child: SizedBox(
-                height: 56,
+                height: 52,
                 child: TextButton(
                   onPressed: () => onKey(k),
                   child: k == 'back' ? const Icon(Icons.backspace_outlined, color: Brand.ink) : Text(k, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Brand.ink)),
