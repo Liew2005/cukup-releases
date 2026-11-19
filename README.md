@@ -13,7 +13,7 @@ Scan a receipt, split the bill with friends, and stay under a weekly cap, all wi
 ![Cost](https://img.shields.io/badge/running%20cost-RM%200-2ea44f)
 ![Tests](https://img.shields.io/badge/tests-129%20Flutter%20%2B%209%20Kotlin%20%2B%20worker%20suites-brightgreen)
 
-[Download](#download) · [Features](#features) · [Architecture](#architecture) · [Engineering highlights](#engineering-highlights) · [Getting started](#getting-started) · [Docs](#documentation)
+[Download](#download) · [Features](#features) · [Project brief](docs/PROJECT_BRIEF.md) · [Architecture](#architecture) · [Engineering highlights](#engineering-highlights) · [Getting started](#getting-started) · [Docs](#documentation)
 
 </div>
 
@@ -166,6 +166,7 @@ cd worker && npm run typecheck && node scripts/receipt.test.mjs
 
 | Document | What is in it |
 |---|---|
+| [Project brief](docs/PROJECT_BRIEF.md) | Problem, scope, releases, key decisions, risks and quality approach |
 | [Features](docs/FEATURES.md) | Every feature and how it behaves |
 | [Architecture](docs/ARCHITECTURE.md) | Components, data model, sync, receipt pipeline, split maths |
 | [API reference](docs/API.md) | Worker endpoints |

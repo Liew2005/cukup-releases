@@ -1,17 +1,32 @@
-# cukup
+# Cukup app
 
-A new Flutter project.
+The Flutter Android client for [Cukup](../README.md). It is offline-first: everything is stored on the phone in SQLite (Drift), and the Cloudflare Worker in `../worker` only adds receipt parsing and sync between devices.
 
-## Getting Started
+## Layout
 
-This project is a starting point for a Flutter application.
+| Folder | Contents |
+|---|---|
+| `lib/core/` | Pure Dart logic (splits, ledger, carry-over, parsing, CSV). No Flutter imports. |
+| `lib/data/` | Database, API client, sync, OCR, notifications, widget sync, OTA updater |
+| `lib/features/` | Screens and reusable widgets |
+| `lib/theme/` | Colours, type and spacing |
+| `android/` | Kotlin side: payment notification listener, home-screen widget, Quick Settings tile, installer provider |
+| `test/` | Unit tests |
 
-A few resources to get you started if this is your first Flutter project:
+## Run it
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter pub get
+# set apiBase in lib/core/config.dart to your own Worker URL
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Check it
+
+```bash
+flutter analyze
+flutter test
+cd android && ./gradlew :app:testDebugUnitTest
+```
+
+Full setup, signing and release steps: [../docs/SETUP.md](../docs/SETUP.md).
